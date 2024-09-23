@@ -165,6 +165,9 @@ int main() {
     * from the player's position. For each value of t, we calculate the x and y coordinates of the point
     * on the line segment using the parametric equation of a line. We then check if the point is within
     * the map boundaries and stop drawing the line if it hits a wall.
+    * 
+    * The angle of the line segment is calculated based on the player's view direction and the field of view.
+    * We iterate over a range of values for i to draw multiple rays that cover the player's field of view.
     */
     for (size_t i=0; i<win_w; i++) { 
         // current angle
