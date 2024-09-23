@@ -146,6 +146,40 @@ bool load_texture(const std::string filename, std::vector<uint32_t> &texture, si
     return true;
 }
 
+/**
+ * @brief Extracts a vertical column of pixels from a texture atlas.
+ *
+ * This function extracts a vertical column of pixels from a specified texture
+ * in a texture atlas. The texture atlas is represented by a single image
+ * containing multiple textures of the same size arranged horizontally.
+ *
+ * @param img The texture atlas image represented as a vector of pixels.
+ * @param texsize The size (width and height) of each individual texture in the atlas.
+ * @param ntextures The number of textures in the atlas.
+ * @param texid The ID of the texture to extract the column from (0-based index).
+ * @param texcoord The x-coordinate within the texture to extract the column from.
+ * @param column_height The height of the column to extract.
+ * @return A vector containing the extracted column of pixels.
+ *
+ * @note The function assumes that the texture atlas is a square image with
+ *       dimensions texsize * ntextures by texsize.
+ * @note The function asserts that the size of the img vector matches the expected
+ *       dimensions of the texture atlas and that texcoord and texid are within
+ *       valid ranges.
+ */
+std::vector<uint32_t> texture_column(const std::vector<uint32_t> &img, const size_t texsize, const size_t ntextures, const size_t texid, const size_t texcoord, const size_t column_height) {
+    const size_t img_w = texsize*ntextures;
+    const size_t img_h = texsize;
+    assert(img.size()==img_w*img_h && texcoord<texsize && texid<ntextures);
+    std::vector<uint32_t> column(column_height);
+    for (size_t y=0; y<column_height; y++) {
+        size_t pix_x = texid*texsize + texcoord;
+        size_t pix_y = (y*texsize)/column_height;
+        column[y] = img[pix_x + pix_y*img_w];
+    }
+    return column;
+}
+
 
 int main() {
     const size_t win_w = 1024; // image width
@@ -154,22 +188,22 @@ int main() {
 
     const size_t map_w = 16; // map width
     const size_t map_h = 16; // map height
-    const char map[] = "0000222222220000"\
-                       "1              0"\
-                       "1     011111   0"\
-                       "1     0        0"\
-                       "0     0    11000"\
-                       "0     3        0"\
-                       "0   10000      0"\
-                       "0   0   1      0"\
-                       "0   0   0      0"\
-                       "0   0   1      0"\
-                       "0       1      0"\
-                       "2       1      0"\
-                       "000000000      0"\
-                       "0              0"\
-                       "0              0"\
-                       "0002222222200000"; // our game map
+    const char map[] = "1111111111111111"\
+                       "1              1"\
+                       "1     1111131111"\
+                       "1     1        1"\
+                       "1     1        1"\
+                       "1     1        1"\
+                       "113111111      1"\
+                       "1   1   1      1"\
+                       "1   1   1      1"\
+                       "1   11311      1"\
+                       "1       1      1"\
+                       "1       1      1"\
+                       "111111111      1"\
+                       "1              1"\
+                       "1              1"\
+                       "1111111111111111"; // our game map [1 is a wall, 3 is a door]
     assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string
 
     // add player position and direction
@@ -198,7 +232,11 @@ int main() {
             if (map[i+j*map_w]==' ') continue; // skip empty spaces
             size_t rect_x = i*rect_w;
             size_t rect_y = j*rect_h;
-            draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, pack_color(0, 0, 0)); // make the map borders black
+
+            size_t texid = map[i+j*map_w] - '0';
+            assert(texid<walltext_cnt);
+            // Fill the wall with the color from the upper left pixel of the texture #texid
+            draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, walltext[texid*walltext_size]);
         }
     }
 
@@ -231,21 +269,33 @@ int main() {
             float cx = player_x + t*cos(angle);
             float cy = player_y + t*sin(angle);
 
-            size_t pix_x = cx*rect_w;
-            size_t pix_y = cy*rect_h;
+            int pix_x = cx*rect_w;
+            int pix_y = cy*rect_h;
             framebuffer[pix_x + pix_y*win_w] = pack_color(0, 0, 0); // draw the line segment
 
             if (map[int(cx)+int(cy)*map_w]!=' ') { // our ray touches a wall, so draw the vertical column to create an illusion of 3D
+                size_t texid = map[int(cx)+int(cy)*map_w] - '0';
+                assert(texid<walltext_cnt);
+
                 size_t column_height = win_h/(t*cos(angle-player_a)); // for fish-eye effect correction
-                draw_rectangle(framebuffer, win_w, win_h, win_w/2+i, win_h/2-column_height/2, 1, column_height, pack_color(0, 0, 0));
+
+                float hitx = cx - floor(cx+.5); // hitx and hity contain (signed) fractional parts of cx and cy,
+                float hity = cy - floor(cy+.5); // they vary between -0.5 and +0.5, and one of them is supposed to be very close to 0
+                int x_texcoord = hitx*walltext_size;
+                if (std::abs(hity)>std::abs(hitx)) { // we need to determine whether we hit a "vertical" or a "horizontal" wall (w.r.t the map)
+                    x_texcoord = hity*walltext_size;
+                }
+                if (x_texcoord<0) x_texcoord += walltext_size; // do not forget x_texcoord can be negative
+                assert(x_texcoord>=0 && x_texcoord<(int)walltext_size);
+                std::vector<uint32_t> column = texture_column(walltext, walltext_size, walltext_cnt, texid, x_texcoord, column_height);
+                pix_x = win_w/2+i;
+                for (size_t j=0; j<column_height; j++) {
+                    pix_y = j + win_h/2-column_height/2;
+                    if (pix_y<0 || pix_y>=(int)win_h) continue;
+                    framebuffer[pix_x + pix_y*win_w] = column[j];
+                }
                 break;
             }
-        }
-    }
-    const size_t texid = 1; // draw the 2th texture on the screen [they are numbered from 0]
-    for (size_t i=0; i<walltext_size; i++) {
-        for (size_t j=0; j<walltext_size; j++) {
-            framebuffer[i+j*win_w] = walltext[i + texid*walltext_size + j*walltext_size*walltext_cnt];
         }
     }
 
