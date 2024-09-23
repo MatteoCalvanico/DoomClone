@@ -2,6 +2,8 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 #include <vector>
 #include <cstdint>
 #include <cassert>
@@ -58,7 +60,8 @@ void unpack_color(const uint32_t &color, uint8_t &r, uint8_t &g, uint8_t &b, uin
 void drop_ppm_image(const std::string filename, const std::vector<uint32_t> &image, const size_t w, const size_t h) {
     assert(image.size() == w*h);
     std::ofstream ofs;
-    ofs.open(filename, std::ofstream::out | std::ofstream::binary);
+    std::string output_path = "output/" + filename;
+    ofs.open(output_path, std::ofstream::out | std::ofstream::binary);
     ofs << "P6\n" << w << " " << h << "\n255\n";
     for (size_t i = 0; i < h*w; ++i) {
         uint8_t r, g, b, a;
@@ -92,7 +95,7 @@ void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t
         for (size_t j=0; j<h; j++) {
             size_t cx = x+i;
             size_t cy = y+j;
-            if (cx>=img_w || cy>=img_h) continue; // no need to check negative values, (unsigned variables)
+            if (cx>=img_w || cy>=img_h) continue; // no need to check for negative values (unsigned variables)
             img[cx + cy*img_w] = color;
         }
     }
@@ -135,57 +138,67 @@ int main() {
 
     const size_t rect_w = win_w/(map_w*2);
     const size_t rect_h = win_h/map_h;
-    for (size_t j=0; j<map_h; j++) { // draw the map
-        for (size_t i=0; i<map_w; i++) {
-            if (map[i+j*map_w]==' ') continue; // skip empty spaces
-            size_t rect_x = i*rect_w;
-            size_t rect_y = j*rect_h;
-            draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, pack_color(0, 0, 0)); // make the map borders black
-        }
-    }
 
-    // draw the player
-    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 0, 0)); 
+    for (size_t frame=0; frame<360; frame++) { // Make an animation by rotating the player's view direction
+        std::stringstream ss;
+        ss << std::setfill('0') << std::setw(5) << frame << ".ppm";
+        player_a += 2*M_PI/360;
 
-    // Heart of 3D engine: draw the player's visibility cone AND "3D" view
-    /*
-    * The player's view direction is represented by a line segment that starts at the player's position 
-    * and extends in the direction of the player's view.
-    * 
-    * The line segment is drawn by iterating over a range of values for t, which represents the distance
-    * from the player's position. For each value of t, we calculate the x and y coordinates of the point
-    * on the line segment using the parametric equation of a line. We then check if the point is within
-    * the map boundaries and stop drawing the line if it hits a wall.
-    * 
-    * The angle of the line segment is calculated based on the player's view direction and the field of view.
-    * We iterate over a range of values for i to draw multiple rays that cover the player's field of view.
-    * 
-    * 
-    * To give a sense of depth, we draw vertical columns for each ray that hits a wall. The height of the
-    * column is inversely proportional to the distance of the wall, creating the illusion of 3D.
-    */
-    for (size_t i=0; i<win_w/2; i++) { 
-        // current angle
-        float angle = player_a-fov/2 + fov*i/float(win_w/2); 
+        framebuffer = std::vector<uint32_t>(win_w*win_h, pack_color(255, 255, 255)); // clear the screen
 
-        for (float t=0; t<20; t+=.05) { // draw every ray
-            float cx = player_x + t*cos(angle);
-            float cy = player_y + t*sin(angle);
-
-            size_t pix_x = cx*rect_w;
-            size_t pix_y = cy*rect_h;
-            framebuffer[pix_x + pix_y*win_w] = pack_color(0, 0, 0); // draw the line segment
-
-            if (map[int(cx)+int(cy)*map_w]!=' ') { // our ray touches a wall, so draw the vertical column to create an illusion of 3D
-                size_t column_height = win_h/t;
-                draw_rectangle(framebuffer, win_w, win_h, win_w/2+i, win_h/2-column_height/2, 1, column_height, pack_color(0, 0, 0));
-                break;
+        for (size_t j=0; j<map_h; j++) { // draw the map
+            for (size_t i=0; i<map_w; i++) {
+                if (map[i+j*map_w]==' ') continue; // skip empty spaces
+                size_t rect_x = i*rect_w;
+                size_t rect_y = j*rect_h;
+                draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, pack_color(0, 0, 0)); // make the map borders black
             }
         }
-    }
 
-    // save the image to a file
-    drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
+
+        // draw the player
+        draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 0, 0)); 
+
+        // Heart of 3D engine: draw the player's visibility cone AND "3D" view
+        /*
+        * The player's view direction is represented by a line segment that starts at the player's position 
+        * and extends in the direction of the player's view.
+        * 
+        * The line segment is drawn by iterating over a range of values for t, which represents the distance
+        * from the player's position. For each value of t, we calculate the x and y coordinates of the point
+        * on the line segment using the parametric equation of a line. We then check if the point is within
+        * the map boundaries and stop drawing the line if it hits a wall.
+        * 
+        * The angle of the line segment is calculated based on the player's view direction and the field of view.
+        * We iterate over a range of values for i to draw multiple rays that cover the player's field of view.
+        * 
+        * 
+        * To give a sense of depth, we draw vertical columns for each ray that hits a wall. The height of the
+        * column is inversely proportional to the distance of the wall, creating the illusion of 3D.
+        */
+        for (size_t i=0; i<win_w/2; i++) { 
+            // current angle
+            float angle = player_a-fov/2 + fov*i/float(win_w/2); 
+
+            for (float t=0; t<20; t+=.05) { // draw every ray
+                float cx = player_x + t*cos(angle);
+                float cy = player_y + t*sin(angle);
+
+                size_t pix_x = cx*rect_w;
+                size_t pix_y = cy*rect_h;
+                framebuffer[pix_x + pix_y*win_w] = pack_color(0, 0, 0); // draw the line segment
+
+                if (map[int(cx)+int(cy)*map_w]!=' ') { // our ray touches a wall, so draw the vertical column to create an illusion of 3D
+                    size_t column_height = win_h/t;
+                    draw_rectangle(framebuffer, win_w, win_h, win_w/2+i, win_h/2-column_height/2, 1, column_height, pack_color(0, 0, 0));
+                    break;
+                }
+            }
+        }
+
+        // save the animation frame to a file
+        drop_ppm_image(ss.str(), framebuffer, win_w, win_h);
+    }
 
     // End of rendering the scene ----------------------------------------------
 
