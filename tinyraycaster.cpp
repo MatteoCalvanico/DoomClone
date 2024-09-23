@@ -125,8 +125,9 @@ int main() {
 
     // add player position and direction
     // use map_w and map_h to make sure the player is placed in the map boundaries
-    float player_x = 2.0;
-    float player_y = 14.0;
+    float player_x = 2.0;    // player's position
+    float player_y = 14.0;   // player's position
+    float player_a = 270.0;  // player's view direction [angle in degrees]
 
 
     // Start to render the scene ------------------------------------------------
@@ -151,8 +152,32 @@ int main() {
         }
     }
 
-    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 0, 0)); // draw the player
+    // draw the player
+    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 0, 0)); 
 
+    // Heart of 3D engine: draw the player's view direction
+    /*
+    * The player's view direction is represented by a line segment that starts at the player's position 
+    * and extends in the direction of the player's view.
+    * 
+    * The line segment is drawn by iterating over a range of values for t, which represents the distance
+    * from the player's position. For each value of t, we calculate the x and y coordinates of the point
+    * on the line segment using the parametric equation of a line. We then check if the point is within
+    * the map boundaries and stop drawing the line if it hits a wall.
+    */
+    for (float t=0; t<20; t+=.05) {
+        // the "c"s are the x and y coordinates of the point on the line segment
+        float cx = player_x + t*cos(player_a); 
+        float cy = player_y + t*sin(player_a);
+
+        if (map[int(cx)+int(cy)*map_w]!=' ') break; // stop if we hit a wall
+
+        size_t pix_x = cx*rect_w;
+        size_t pix_y = cy*rect_h;
+        framebuffer[pix_x + pix_y*win_w] = pack_color(0, 0, 0); // draw the line segment
+    }
+
+    // save the image to a file
     drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
 
     // End of rendering the scene ----------------------------------------------
