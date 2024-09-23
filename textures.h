@@ -8,7 +8,7 @@ struct Texture {
 
     Texture(const std::string filename);
 
-    // get the pixel (i,j) from the textrue idx
+    // get the pixel (i,j) from the texture idx
     uint32_t &get(const size_t i, const size_t j, const size_t idx); 
 
     // retrieve one column (tex_coord) from the texture texture_id and scale it to the destination size
