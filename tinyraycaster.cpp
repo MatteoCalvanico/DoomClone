@@ -101,7 +101,7 @@ void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t
 int main() {
     const size_t win_w = 512; // image width
     const size_t win_h = 512; // image height
-    std::vector<uint32_t> framebuffer(win_w*win_h, 255); // the image itself, initialized to red
+    std::vector<uint32_t> framebuffer(win_w*win_h, 255); // the image itself
 
     const size_t map_w = 16; // map width
     const size_t map_h = 16; // map height
@@ -123,6 +123,14 @@ int main() {
                        "0002222222200000"; // our game map
     assert(sizeof(map) == map_w*map_h+1); // +1 for the null terminated string
 
+    // add player position and direction
+    // use map_w and map_h to make sure the player is placed in the map boundaries
+    float player_x = 2.0;
+    float player_y = 14.0;
+
+
+    // Start to render the scene ------------------------------------------------
+
     for (size_t j = 0; j<win_h; j++) { // make the map white [where the player can go]
         for (size_t i = 0; i<win_w; i++) {
             uint8_t r = 255; 
@@ -143,7 +151,11 @@ int main() {
         }
     }
 
+    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 0, 0)); // draw the player
+
     drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
+
+    // End of rendering the scene ----------------------------------------------
 
     return 0;
 }
