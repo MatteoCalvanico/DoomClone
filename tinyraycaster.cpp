@@ -2,11 +2,11 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <iomanip>
 #include <vector>
 #include <cstdint>
 #include <cassert>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 /**
  * @brief Packs individual color components into a single 32-bit integer.
@@ -101,6 +101,52 @@ void draw_rectangle(std::vector<uint32_t> &img, const size_t img_w, const size_t
     }
 }
 
+/**
+ * @brief Loads a texture from a file and stores it in a vector.
+ *
+ * This function loads a texture from the specified file and stores the pixel data in the provided texture vector.
+ * The texture must be a 32-bit image and contain N square textures packed horizontally.
+ *
+ * @param filename The path to the texture file.
+ * @param texture A reference to a vector where the texture data will be stored.
+ * @param text_size A reference to a size_t variable where the size of each individual texture will be stored.
+ * @param text_cnt A reference to a size_t variable where the count of individual textures will be stored.
+ * @return true if the texture was successfully loaded, false otherwise.
+ */
+bool load_texture(const std::string filename, std::vector<uint32_t> &texture, size_t &text_size, size_t &text_cnt) {
+    int nchannels = -1, w, h;
+    unsigned char *pixmap = stbi_load(filename.c_str(), &w, &h, &nchannels, 0);
+    if (!pixmap) {
+        std::cerr << "Error: can not load the textures" << std::endl;
+        return false;
+    }
+    if (4!=nchannels) {
+        std::cerr << "Error: the texture must be a 32 bit image" << std::endl;
+        stbi_image_free(pixmap);
+        return false;
+    }
+    text_cnt = w/h;
+    text_size = w/text_cnt;
+    if (w!=h*int(text_cnt)) {
+        std::cerr << "Error: the texture file must contain N square textures packed horizontally" << std::endl;
+        stbi_image_free(pixmap);
+        return false;
+    }
+    texture = std::vector<uint32_t>(w*h);
+    for (int j=0; j<h; j++) {
+        for (int i=0; i<w; i++) {
+            uint8_t r = pixmap[(i+j*w)*4+0];
+            uint8_t g = pixmap[(i+j*w)*4+1];
+            uint8_t b = pixmap[(i+j*w)*4+2];
+            uint8_t a = pixmap[(i+j*w)*4+3];
+            texture[i+j*w] = pack_color(r, g, b, a);
+        }
+    }
+    stbi_image_free(pixmap);
+    return true;
+}
+
+
 int main() {
     const size_t win_w = 1024; // image width
     const size_t win_h = 512;  // image height
@@ -133,72 +179,77 @@ int main() {
     float player_a = 270.0;    // player's view direction [angle in degrees]
     const float fov = M_PI/3;  // field of view [radians, 180°/3 = 60° in this case]
 
+    std::vector<uint32_t> walltext; // textures for the walls
+    size_t walltext_size;           // texture dimensions (it is a square)
+    size_t walltext_cnt;            // number of different textures in the image
+    if (!load_texture("./texture/walltext.png", walltext, walltext_size, walltext_cnt)) {
+        std::cerr << "Failed to load wall textures" << std::endl;
+        return -1;
+    }
+
 
     // Start to render the scene ------------------------------------------------
 
     const size_t rect_w = win_w/(map_w*2);
     const size_t rect_h = win_h/map_h;
 
-    for (size_t frame=0; frame<360; frame++) { // Make an animation by rotating the player's view direction
-        std::stringstream ss;
-        ss << std::setfill('0') << std::setw(5) << frame << ".ppm";
-        player_a += 2*M_PI/360;
-
-        framebuffer = std::vector<uint32_t>(win_w*win_h, pack_color(255, 255, 255)); // clear the screen
-
-        for (size_t j=0; j<map_h; j++) { // draw the map
-            for (size_t i=0; i<map_w; i++) {
-                if (map[i+j*map_w]==' ') continue; // skip empty spaces
-                size_t rect_x = i*rect_w;
-                size_t rect_y = j*rect_h;
-                draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, pack_color(0, 0, 0)); // make the map borders black
-            }
+    for (size_t j=0; j<map_h; j++) { // draw the map
+        for (size_t i=0; i<map_w; i++) {
+            if (map[i+j*map_w]==' ') continue; // skip empty spaces
+            size_t rect_x = i*rect_w;
+            size_t rect_y = j*rect_h;
+            draw_rectangle(framebuffer, win_w, win_h, rect_x, rect_y, rect_w, rect_h, pack_color(0, 0, 0)); // make the map borders black
         }
-
-
-        // draw the player
-        draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 0, 0)); 
-
-        // Heart of 3D engine: draw the player's visibility cone AND "3D" view
-        /*
-        * The player's view direction is represented by a line segment that starts at the player's position 
-        * and extends in the direction of the player's view.
-        * 
-        * The line segment is drawn by iterating over a range of values for t, which represents the distance
-        * from the player's position. For each value of t, we calculate the x and y coordinates of the point
-        * on the line segment using the parametric equation of a line. We then check if the point is within
-        * the map boundaries and stop drawing the line if it hits a wall.
-        * 
-        * The angle of the line segment is calculated based on the player's view direction and the field of view.
-        * We iterate over a range of values for i to draw multiple rays that cover the player's field of view.
-        * 
-        * 
-        * To give a sense of depth, we draw vertical columns for each ray that hits a wall. The height of the
-        * column is inversely proportional to the distance of the wall, creating the illusion of 3D.
-        */
-        for (size_t i=0; i<win_w/2; i++) { 
-            // current angle
-            float angle = player_a-fov/2 + fov*i/float(win_w/2); 
-
-            for (float t=0; t<20; t+=.05) { // draw every ray
-                float cx = player_x + t*cos(angle);
-                float cy = player_y + t*sin(angle);
-
-                size_t pix_x = cx*rect_w;
-                size_t pix_y = cy*rect_h;
-                framebuffer[pix_x + pix_y*win_w] = pack_color(0, 0, 0); // draw the line segment
-
-                if (map[int(cx)+int(cy)*map_w]!=' ') { // our ray touches a wall, so draw the vertical column to create an illusion of 3D
-                    size_t column_height = win_h/(t*cos(angle-player_a)); // for fish-eye effect correction
-                    draw_rectangle(framebuffer, win_w, win_h, win_w/2+i, win_h/2-column_height/2, 1, column_height, pack_color(0, 0, 0));
-                    break;
-                }
-            }
-        }
-
-        // save the animation frame to a file
-        drop_ppm_image(ss.str(), framebuffer, win_w, win_h);
     }
+
+
+    // draw the player
+    draw_rectangle(framebuffer, win_w, win_h, player_x*rect_w, player_y*rect_h, 5, 5, pack_color(255, 0, 0)); 
+
+    // Heart of 3D engine: draw the player's visibility cone AND "3D" view
+    /*
+    * The player's view direction is represented by a line segment that starts at the player's position 
+    * and extends in the direction of the player's view.
+    * 
+    * The line segment is drawn by iterating over a range of values for t, which represents the distance
+    * from the player's position. For each value of t, we calculate the x and y coordinates of the point
+    * on the line segment using the parametric equation of a line. We then check if the point is within
+    * the map boundaries and stop drawing the line if it hits a wall.
+    * 
+    * The angle of the line segment is calculated based on the player's view direction and the field of view.
+    * We iterate over a range of values for i to draw multiple rays that cover the player's field of view.
+    * 
+    * 
+    * To give a sense of depth, we draw vertical columns for each ray that hits a wall. The height of the
+    * column is inversely proportional to the distance of the wall, creating the illusion of 3D.
+    */
+    for (size_t i=0; i<win_w/2; i++) { 
+        // current angle
+        float angle = player_a-fov/2 + fov*i/float(win_w/2); 
+
+        for (float t=0; t<20; t+=.05) { // draw every ray
+            float cx = player_x + t*cos(angle);
+            float cy = player_y + t*sin(angle);
+
+            size_t pix_x = cx*rect_w;
+            size_t pix_y = cy*rect_h;
+            framebuffer[pix_x + pix_y*win_w] = pack_color(0, 0, 0); // draw the line segment
+
+            if (map[int(cx)+int(cy)*map_w]!=' ') { // our ray touches a wall, so draw the vertical column to create an illusion of 3D
+                size_t column_height = win_h/(t*cos(angle-player_a)); // for fish-eye effect correction
+                draw_rectangle(framebuffer, win_w, win_h, win_w/2+i, win_h/2-column_height/2, 1, column_height, pack_color(0, 0, 0));
+                break;
+            }
+        }
+    }
+    const size_t texid = 1; // draw the 2th texture on the screen [they are numbered from 0]
+    for (size_t i=0; i<walltext_size; i++) {
+        for (size_t j=0; j<walltext_size; j++) {
+            framebuffer[i+j*win_w] = walltext[i + texid*walltext_size + j*walltext_size*walltext_cnt];
+        }
+    }
+
+    drop_ppm_image("./out.ppm", framebuffer, win_w, win_h);
 
     // End of rendering the scene ----------------------------------------------
 
