@@ -82,10 +82,18 @@ void render(FrameBuffer &fb, Map &map, Player &player, std::vector<Sprite> &spri
     const size_t rect_w = fb.w/(map.w*2); // size of one map cell on the screen
     const size_t rect_h = fb.h/map.h;
 
-    for (size_t j=0; j<map.h; j++) {  // draw the map
+    // Draw the map - fill each cell with the corresponding texture
+    for (size_t j=0; j<map.h; j++) { 
         for (size_t i=0; i<map.w; i++) {
 
-            if (map.is_empty(i, j)) continue; // skip empty spaces
+            if (map.is_empty(i, j)){
+
+                size_t rect_x = i*rect_w;
+                size_t rect_y = j*rect_h;
+                fb.draw_rectangle(rect_x, rect_y, rect_w, rect_h, tex_walls.get(0, 0, 2));
+
+                continue;
+            }
 
             size_t rect_x = i*rect_w;
             size_t rect_y = j*rect_h;
@@ -139,10 +147,11 @@ int main() {
 
     // Create a framebuffer, player, map, and wall textures
     FrameBuffer fb{1024, 512, std::vector<uint32_t>(1024*512, pack_color(255, 255, 255))};
+
     Player player{2, 14, 270, M_PI/3.};
+
     Map map;
     Texture tex_walls("texture/walltext.png");
-
     Texture tex_monst("texture/monsters.png");
     if (!tex_walls.count || !tex_monst.count) {
         std::cerr << "Failed to load textures" << std::endl;
