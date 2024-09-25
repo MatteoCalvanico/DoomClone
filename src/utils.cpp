@@ -3,7 +3,8 @@
 #include <vector>
 #include <cstdint>
 #include <cassert>
-#include "utils.h"
+
+#include "../include/headers/utils.h"
 
 /**
  * @brief Packs individual color components into a single 32-bit integer.

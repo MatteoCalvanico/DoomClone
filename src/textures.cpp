@@ -5,9 +5,9 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 
-#include "stb_image.h"
-#include "utils.h"
-#include "textures.h"
+#include "../include/headers/stb_image.h"
+#include "../include/headers/utils.h"
+#include "../include/headers/textures.h"
 
 /**
  * @brief Constructs a Texture object by loading an image from a file.

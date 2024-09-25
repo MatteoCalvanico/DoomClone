@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cassert>
 
-#include "map.h"
+#include "../include/headers/map.h"
 
 
 static const char map[] = "1111111111111111"\

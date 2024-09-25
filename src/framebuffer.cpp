@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <cassert>
 
-#include "framebuffer.h"
-#include "utils.h"
+#include "../include/headers/framebuffer.h"
+#include "../include/headers/utils.h"
 
 /**
  * @brief Sets the color of a specific pixel in the framebuffer.

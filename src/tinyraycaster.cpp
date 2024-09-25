@@ -8,12 +8,12 @@
 #include <sstream>
 #include <iomanip>
 
-#include "map.h"
-#include "utils.h"
-#include "player.h"
-#include "sprite.h"
-#include "framebuffer.h"
-#include "textures.h"
+#include "../include/headers/map.h"
+#include "../include/headers/utils.h"
+#include "../include/headers/player.h"
+#include "../include/headers/sprite.h"
+#include "../include/headers/framebuffer.h"
+#include "../include/headers/textures.h"
 
 /**
  * @brief Calculates the texture coordinate for a wall hit in a raycasting engine.
@@ -214,6 +214,7 @@ int main() {
     std::vector<Sprite> sprites{ {4, 14, 0, 0}, {6, 14.50, 1, 0}, {8, 13.50, 2, 0} };
 
     // Render the game frames and save them as PPM images
+    std::cout << "Rendering frames..." << std::endl;
     for (size_t frame=0; frame<360; frame++) {
         std::stringstream ss;
         ss << std::setfill('0') << std::setw(5) << frame << ".ppm";
