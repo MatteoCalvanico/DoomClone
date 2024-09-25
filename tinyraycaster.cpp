@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <cstdint>
+#include <algorithm>
 #include <cassert>
 #include <sstream>
 #include <iomanip>
@@ -60,6 +61,44 @@ void map_show_sprite(Sprite &sprite, FrameBuffer &fb, Map &map) {
 }
 
 /**
+ * @brief Draws a sprite on the framebuffer.
+ *
+ * This function renders a sprite onto the framebuffer, taking into account the player's position,
+ * direction, and the depth buffer to handle occlusion. The sprite is scaled based on its distance
+ * from the player and is drawn only if it is within the player's field of view and not occluded by
+ * other objects.
+ *
+ * @param sprite The sprite to be drawn, containing its position and texture ID.
+ * @param depth_buffer A vector containing depth information for each column of the framebuffer.
+ * @param fb The framebuffer where the sprite will be drawn.
+ * @param player The player object, containing the player's position and viewing angle.
+ * @param tex_sprites The texture containing the sprite's image.
+ */
+void draw_sprite(Sprite &sprite, std::vector<float> &depth_buffer, FrameBuffer &fb, Player &player, Texture &tex_sprites) {
+    // absolute direction from the player to the sprite (in radians)
+    float sprite_dir = atan2(sprite.y - player.y, sprite.x - player.x);
+    while (sprite_dir - player.a >  M_PI) sprite_dir -= 2*M_PI; // remove unncesessary periods from the relative direction
+    while (sprite_dir - player.a < -M_PI) sprite_dir += 2*M_PI;
+
+    size_t sprite_screen_size = std::min(1000, static_cast<int>(fb.h/sprite.player_dist)); // screen sprite size
+    int h_offset = (sprite_dir - player.a)/player.fov*(fb.w/2) + (fb.w/2)/2 - tex_sprites.size/2; // do not forget the 3D view takes only a half of the framebuffer
+    int v_offset = fb.h/2 - sprite_screen_size/2;
+
+    for (size_t i=0; i<sprite_screen_size; i++) {
+        if (h_offset+int(i)<0 || h_offset+i>=fb.w/2) continue;
+        if (depth_buffer[h_offset+i]<sprite.player_dist) continue; // this sprite column is occluded
+        for (size_t j=0; j<sprite_screen_size; j++) {
+            if (v_offset+int(j)<0 || v_offset+j>=fb.h) continue;
+            uint32_t color = tex_sprites.get(i*tex_sprites.size/sprite_screen_size, j*tex_sprites.size/sprite_screen_size, sprite.tex_id);
+            uint8_t r,g,b,a;
+            unpack_color(color, r, g, b, a);
+            if (a>128)
+            fb.set_pixel(fb.w/2 + h_offset+i, v_offset+j, color);
+        }
+    }
+}
+
+/**
  * @brief Renders the game frame, including the map, player visibility cone, 3D view, and sprites.
  * 
  * @param fb The framebuffer to draw on.
@@ -85,7 +124,8 @@ void render(FrameBuffer &fb, Map &map, Player &player, std::vector<Sprite> &spri
     // Draw the map - fill each cell with the corresponding texture
     for (size_t j=0; j<map.h; j++) { 
         for (size_t i=0; i<map.w; i++) {
-
+            
+            // fill the floor
             if (map.is_empty(i, j)){
 
                 size_t rect_x = i*rect_w;
@@ -106,7 +146,9 @@ void render(FrameBuffer &fb, Map &map, Player &player, std::vector<Sprite> &spri
         }
     }
 
-    // Draw the visibility cone and the 3D view
+    std::vector<float> depth_buffer(fb.w/2, 1e3); // buffer to store the Z-coordinate based on the ray casting
+
+    // Draw the visibility cone AND the 3D view
     for (size_t i=0; i<fb.w/2; i++) { 
 
         float angle = player.a-player.fov/2 + player.fov*i/float(fb.w/2); // current angle
@@ -117,12 +159,13 @@ void render(FrameBuffer &fb, Map &map, Player &player, std::vector<Sprite> &spri
             float y = player.y + t*sin(angle);
             fb.set_pixel(x*rect_w, y*rect_h, pack_color(160, 160, 160)); // this draws the visibility cone
 
-            if (map.is_empty(x, y)) continue;
+            if (map.is_empty(x, y)) continue; // ray falls within the screen, but does not touch a wall
 
             size_t texid = map.get(x, y); // our ray touches a wall, so draw the vertical column to create an illusion of 3D
             assert(texid<tex_walls.count);
 
             float dist = t*cos(angle-player.a);
+            depth_buffer[i] = dist; // save the distance to the wall
             size_t column_height = fb.h/dist;
 
             int x_texcoord = wall_x_texcoord(x, y, tex_walls);
@@ -138,8 +181,19 @@ void render(FrameBuffer &fb, Map &map, Player &player, std::vector<Sprite> &spri
             break;
         }
     }
-    for (size_t i=0; i<sprites.size(); i++) {
+
+    // Update the distances from the player to each sprite
+    for (size_t i=0; i<sprites.size(); i++) { 
+        sprites[i].player_dist = std::sqrt(pow(player.x - sprites[i].x, 2) + pow(player.y - sprites[i].y, 2));
+    }
+
+    // Sort the sprites from farthest to closest
+    std::sort(sprites.begin(), sprites.end()); 
+
+    // Draw the sprites
+    for (size_t i=0; i<sprites.size(); i++) { 
         map_show_sprite(sprites[i], fb, map);
+        draw_sprite(sprites[i], depth_buffer, fb, player, tex_monst);
     }
 }
 
@@ -157,7 +211,7 @@ int main() {
         std::cerr << "Failed to load textures" << std::endl;
         return -1;
     }
-    std::vector<Sprite> sprites{ {4, 14, 1}, {6, 14.50, 1}, {8, 13.50, 1} };
+    std::vector<Sprite> sprites{ {4, 14, 0, 0}, {6, 14.50, 1, 0}, {8, 13.50, 2, 0} };
 
     // Render the game frames and save them as PPM images
     for (size_t frame=0; frame<360; frame++) {
