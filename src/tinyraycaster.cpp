@@ -197,6 +197,7 @@ void render(FrameBuffer &fb, Map &map, Player &player, std::vector<Sprite> &spri
     }
 }
 
+/*
 int main() {
 
     // Create a framebuffer, player, map, and wall textures
@@ -226,4 +227,4 @@ int main() {
 
     return 0;
 }
-
+*/
