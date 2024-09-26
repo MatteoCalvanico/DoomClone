@@ -8,12 +8,7 @@
 #include <SDL.h>
 #include "../include/sdl/SDL.h"
 
-#include "../include/headers/map.h"
 #include "../include/headers/utils.h"
-#include "../include/headers/player.h"
-#include "../include/headers/sprite.h"
-#include "../include/headers/framebuffer.h"
-#include "../include/headers/textures.h"
 #include "../include/headers/tinyraycaster.h"
 
 

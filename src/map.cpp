@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <cassert>
 
 #include "../include/headers/map.h"

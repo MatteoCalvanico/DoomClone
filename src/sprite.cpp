@@ -1,5 +1,3 @@
-#include <cstdlib>
-
 #include "../include/headers/sprite.h"
 
 bool Sprite::operator < (const Sprite& s) const {

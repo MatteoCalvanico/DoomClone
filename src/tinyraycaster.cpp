@@ -1,18 +1,9 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
-#include <vector>
-#include <cstdint>
 #include <cassert>
-#include <sstream>
-#include <iomanip>
 
-#include "../include/headers/map.h"
 #include "../include/headers/utils.h"
-#include "../include/headers/player.h"
-#include "../include/headers/sprite.h"
-#include "../include/headers/framebuffer.h"
-#include "../include/headers/textures.h"
 #include "../include/headers/tinyraycaster.h"
 
 /**
@@ -108,7 +99,7 @@ void draw_sprite(FrameBuffer &fb, const Sprite &sprite, const std::vector<float>
     while (sprite_dir - player.a < -M_PI) sprite_dir += 2*M_PI;
 
     size_t sprite_screen_size = std::min(1000, static_cast<int>(fb.h/sprite.player_dist)); // screen sprite size
-    int h_offset = (sprite_dir - player.a)*(fb.w/2) + (fb.w/2)/2 - tex_sprites.size/2; // do not forget the 3D view takes only a half of the framebuffer
+    int h_offset = (sprite_dir - player.a)*(fb.w/2)/(player.fov) + (fb.w/2)/2 - sprite_screen_size/2; // do not forget the 3D view takes only a half of the framebuffer, thus fb.w/2 for the screen width
     int v_offset = fb.h/2 - sprite_screen_size/2;
 
     for (size_t i=0; i<sprite_screen_size; i++) {
