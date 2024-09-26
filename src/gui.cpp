@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <math.h>
 
 #include <SDL.h>
 #include "../include/sdl/SDL.h"
@@ -37,7 +38,7 @@
  */
 int main() {
     FrameBuffer fb{1024, 512, std::vector<uint32_t>(1024*512, pack_color(255, 255, 255))};
-    Player player{2, 14, 270, M_PI/3.};
+    Player player{2, 14, 270, M_PI/3., 0, 0};
     std::vector<Sprite> sprites{ {4, 14, 0, 0}, {6, 14.50, 1, 0}, {8, 13.50, 2, 0} };
     Map map;
 
@@ -48,7 +49,7 @@ int main() {
         return -1;
     }
     
-    render(fb, map, player, sprites, tex_walls, tex_monst);
+    //render(fb, map, player, sprites, tex_walls, tex_monst);
 
     SDL_Window   *window   = nullptr;
     SDL_Renderer *renderer = nullptr;
@@ -63,14 +64,35 @@ int main() {
     }
 
     SDL_Texture *framebuffer_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
-    SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);
+    //SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);
     
     SDL_Event event;
     while (1) {
-        SDL_PollEvent(&event);
-        if (event.type == SDL_QUIT) {
-            break;
+        // Handle events - player movement and window close
+        if (SDL_PollEvent(&event)) {
+            if (SDL_QUIT==event.type || (SDL_KEYDOWN==event.type && SDLK_ESCAPE==event.key.keysym.sym)) break;
+            if (SDL_KEYUP==event.type) {
+                if ('a'==event.key.keysym.sym || 'd'==event.key.keysym.sym) player.turn = 0;
+                if ('w'==event.key.keysym.sym || 's'==event.key.keysym.sym) player.walk = 0;
+            }
+            if (SDL_KEYDOWN==event.type) {
+                if ('a'==event.key.keysym.sym) player.turn = -1;
+                if ('d'==event.key.keysym.sym) player.turn =  1;
+                if ('w'==event.key.keysym.sym) player.walk =  1;
+                if ('s'==event.key.keysym.sym) player.walk = -1;
+            }
         }
+
+        player.a += float(player.turn)*.05;
+        float nx = player.x + player.walk*cos(player.a)*.1;
+        float ny = player.y + player.walk*sin(player.a)*.1;
+        if (int(nx)>=0 && int(nx)<int(map.w) && int(ny)>=0 && int(ny)<int(map.h) && map.is_empty(nx, ny)) {
+            player.x = nx;
+            player.y = ny;
+        }
+        render(fb, map, player, sprites, tex_walls, tex_monst);
+        SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);
+        
         SDL_RenderClear(renderer);
         SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
         SDL_RenderPresent(renderer);
