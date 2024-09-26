@@ -77,9 +77,11 @@ void draw_map(FrameBuffer &fb, const std::vector<Sprite> &sprites, const Texture
             fb.draw_rectangle(rect_x, rect_y, cell_w, cell_h, tex_walls.get(0, 0, texid)); // the color is taken from the upper left pixel of the texture #texid
         }
     }
+    /*
     for (size_t i=0; i<sprites.size(); i++) { // show the monsters
         fb.draw_rectangle(sprites[i].x*cell_w-3, sprites[i].y*cell_h-3, 6, 6, pack_color(255, 0, 0));
     }
+    */
 }
 
 /**
@@ -96,7 +98,10 @@ void draw_map(FrameBuffer &fb, const std::vector<Sprite> &sprites, const Texture
  * @param player The player object, containing the player's position and viewing angle.
  * @param tex_sprites The texture containing the sprite's image.
  */
-void draw_sprite(FrameBuffer &fb, const Sprite &sprite, const std::vector<float> &depth_buffer, const Player &player, const Texture &tex_sprites) {
+void draw_sprite(FrameBuffer &fb, const Sprite &sprite, const std::vector<float> &depth_buffer, const Map &map, const Player &player, const Texture &tex_sprites) {
+
+    fb.draw_rectangle(sprite.x*(fb.w/(map.w*2)), sprite.y*(fb.h/map.h), 6, 6, pack_color(255, 0, 0)); // draw the sprite on the minimap
+
     // absolute direction from the player to the sprite (in radians)
     float sprite_dir = atan2(sprite.y - player.y, sprite.x - player.x);
     while (sprite_dir - player.a >  M_PI) sprite_dir -= 2*M_PI; // remove unncesessary periods from the relative direction
@@ -187,7 +192,7 @@ void render(FrameBuffer &fb, const GameState &gs) {
 
     // Draw the sprites
     for (size_t i=0; i<sprites.size(); i++) { 
-        draw_sprite(fb, sprites[i], depth_buffer, player, tex_monst);
+        draw_sprite(fb, sprites[i], depth_buffer, map, player, tex_monst);
     }
 }
 
