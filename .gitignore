@@ -1,6 +1,10 @@
 # Visual Studio Code
 .vscode/
 
+# SDL header files
+/include/sdl/*
+!sdl/.gitkeep
+
 # Prerequisites
 *.d
 
