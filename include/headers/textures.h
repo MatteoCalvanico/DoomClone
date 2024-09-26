@@ -9,7 +9,7 @@ struct Texture {
     size_t count, size;        // number of textures and size in pixels
     std::vector<uint32_t> img; // textures storage container
 
-    Texture(const std::string filename);
+    Texture(const std::string filename, const uint32_t format);
 
     // get the pixel (i,j) from the texture idx
     uint32_t get(const size_t i, const size_t j, const size_t idx) const; 
