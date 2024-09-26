@@ -8,9 +8,9 @@ struct Map {
 
     Map();
 
-    int get(const size_t i, const size_t j);
+    int get(const size_t i, const size_t j) const;
     
-    bool is_empty(const size_t i, const size_t j);
+    bool is_empty(const size_t i, const size_t j) const;
 };
 
 #endif // MAP_H
