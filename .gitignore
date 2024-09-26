@@ -2,7 +2,7 @@
 .vscode/
 
 # SDL header files
-/include/sdl/*
+/include/sdl/*.h
 !sdl/.gitkeep
 
 # Prerequisites
