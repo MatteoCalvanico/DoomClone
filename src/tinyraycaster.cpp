@@ -165,7 +165,7 @@ void render(FrameBuffer &fb, const GameState &gs) {
 
             float dist = t*cos(angle-player.a);
             depth_buffer[i] = dist; // save the distance to the wall
-            size_t column_height = fb.h/dist;
+            size_t column_height = std::min(2000, int(fb.h/dist));
 
             int x_texcoord = wall_x_texcoord(x, y, tex_walls);
             std::vector<uint32_t> column = tex_walls.get_scaled_column(texid, x_texcoord, column_height);

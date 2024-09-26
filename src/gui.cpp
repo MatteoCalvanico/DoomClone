@@ -4,6 +4,8 @@
 #include <vector>
 #include <algorithm>
 #include <math.h>
+#include <chrono>
+#include <thread>
 
 #include <SDL.h>
 #include "../include/sdl/SDL.h"
@@ -32,11 +34,6 @@
  */
 int main() {
     FrameBuffer fb{1024, 512, std::vector<uint32_t>(1024*512, pack_color(255, 255, 255))};
-    /*
-    Player player{2, 14, 270, M_PI/3., 0, 0};
-    std::vector<Sprite> sprites{ {4, 14, 0, 0}, {6, 14.50, 1, 0}, {8, 13.50, 2, 0} };
-    Map map;
-    */
 
     GameState gs{ Map(),                                // game map
                   {2, 14, 270, M_PI/3., 0, 0},          // player
@@ -69,9 +66,22 @@ int main() {
     SDL_Texture *framebuffer_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fb.w, fb.h);
     
     SDL_Event event;
+
+    auto t1 = std::chrono::high_resolution_clock::now(); // time point before the game loop - used to measure the time between frames
+
+    // Handle events - player movement and window close
     while (1) {
-        // Handle events - player movement and window close
-        if (SDL_PollEvent(&event)) {
+        auto t2 = std::chrono::high_resolution_clock::now(); // time point after the frame rendering - used to measure the time between frames
+
+        std::chrono::duration<double, std::milli> fp_ms = t2 - t1; // time between frames in milliseconds - used to cap the frame rate
+
+        // if the time between frames is less than 20ms, sleep for the remaining time to cap the frame rate at 50 FPS
+        if (fp_ms.count()<20) { 
+            std::this_thread::sleep_for(std::chrono::milliseconds(3));
+            t1 = t2;
+        }
+
+        if (SDL_PollEvent(&event)) { // update player's state (walking/turning)
             if (SDL_QUIT==event.type || (SDL_KEYDOWN==event.type && SDLK_ESCAPE==event.key.keysym.sym)) break;
             if (SDL_KEYUP==event.type) {
                 if ('a'==event.key.keysym.sym || 'd'==event.key.keysym.sym) gs.player.turn = 0;
@@ -85,18 +95,16 @@ int main() {
             }
         }
 
-        // Update the player position
-        gs.player.a += float(gs.player.turn)*.05;
-        float nx = gs.player.x + gs.player.walk*cos(gs.player.a)*.1;
-        float ny = gs.player.y + gs.player.walk*sin(gs.player.a)*.1;
+        // Update player's position
+        gs.player.a += float(gs.player.turn)*.05; // TODO measure elapsed time and modify the speed accordingly
+        float nx = gs.player.x + gs.player.walk*cos(gs.player.a)*.05;
+        float ny = gs.player.y + gs.player.walk*sin(gs.player.a)*.05;
 
         // Check if the new position is valid
-        if (int(nx)>=0 && int(nx)<int(gs.map.w) && int(ny)>=0 && int(ny)<int(gs.map.h) && gs.map.is_empty(nx, ny)) {
-            gs.player.x = nx;
-            gs.player.y = ny;
+        if (int(nx)>=0 && int(nx)<int(gs.map.w) && int(ny)>=0 && int(ny)<int(gs.map.h)) {
+                if (gs.map.is_empty(nx, gs.player.y)) gs.player.x = nx;
+                if (gs.map.is_empty(gs.player.x, ny)) gs.player.y = ny;
         }
-
-        // Update the distances from the player to each sprite
         for (size_t i=0; i<gs.monsters.size(); i++) { // update the distances from the player to each sprite
             gs.monsters[i].player_dist = std::sqrt(pow(gs.player.x - gs.monsters[i].x, 2) + pow(gs.player.y - gs.monsters[i].y, 2));
         }
