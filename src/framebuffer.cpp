@@ -1,4 +1,7 @@
 #include <cassert>
+#include <SDL_ttf.h>
+#include <string>
+#include <iostream>
 
 #include "../include/headers/framebuffer.h"
 #include "../include/headers/utils.h"
@@ -51,6 +54,58 @@ void FrameBuffer::draw_rectangle(const size_t rect_x, const size_t rect_y, const
                 set_pixel(cx, cy, color);
         }
     }
+}
+
+/**
+ * @brief Draws text on the screen at the specified coordinates with the given color.
+ * 
+ * This function uses SDL2 and SDL_ttf to render text onto the screen. It opens a font,
+ * creates a surface from the text, converts the surface to a texture, and then renders
+ * the texture to the screen at the specified coordinates.
+ * 
+ * @param renderer A pointer to the SDL_Renderer to use for drawing the text.
+ * @param text The text string to be rendered.
+ * @param x The x-coordinate where the text should be drawn.
+ * @param y The y-coordinate where the text should be drawn.
+ * @param color The color of the text in ARGB format.
+ * 
+ * @note The font file path and size are hardcoded in the function. Ensure the font file
+ *       exists at the specified path.
+ * @note The function logs errors to std::cerr if font loading, surface creation, or texture
+ *       creation fails.
+ */
+void FrameBuffer::draw_text(SDL_Renderer* renderer, const std::string &text, const size_t x, const size_t y, const uint32_t color) {
+    static TTF_Font *font = TTF_OpenFont("font/wolfenstein.ttf", 24); 
+    if (!font) {
+        std::cerr << "Failed to load font: " << TTF_GetError() << std::endl;
+        return;
+    }
+
+    SDL_Color sdl_color = { 
+        static_cast<Uint8>((color >> 16) & 0xFF), 
+        static_cast<Uint8>((color >> 8) & 0xFF), 
+        static_cast<Uint8>(color & 0xFF), 
+        static_cast<Uint8>((color >> 24) & 0xFF) 
+    };
+
+    SDL_Surface *surface = TTF_RenderText_Solid(font, text.c_str(), sdl_color);
+    if (!surface) {
+        std::cerr << "Failed to create text surface: " << TTF_GetError() << std::endl;
+        return;
+    }
+
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!texture) {
+        std::cerr << "Failed to create text texture: " << SDL_GetError() << std::endl;
+        SDL_FreeSurface(surface);
+        return;
+    }
+
+    SDL_Rect dstrect = { static_cast<int>(x), static_cast<int>(y), surface->w, surface->h };
+    SDL_RenderCopy(renderer, texture, NULL, &dstrect);
+
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
 }
 
 /**

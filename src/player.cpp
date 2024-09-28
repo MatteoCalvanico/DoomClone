@@ -48,7 +48,7 @@ void Player::update_position(const Map &map) {
  * - -1 for turning left or walking backward
  * - 1 for turning right or walking forward
  */
-void Player::handle_event(const SDL_Event &event) {
+void Player::handle_event(const SDL_Event &event, Map &map) {
     if (SDL_KEYUP == event.type) {
         if ('a' == event.key.keysym.sym || 'd' == event.key.keysym.sym) turn = 0;
         if ('w' == event.key.keysym.sym || 's' == event.key.keysym.sym) walk = 0;
@@ -58,5 +58,15 @@ void Player::handle_event(const SDL_Event &event) {
         if ('d' == event.key.keysym.sym) turn = 1;
         if ('w' == event.key.keysym.sym) walk = 1;
         if ('s' == event.key.keysym.sym) walk = -1;
+        if ('f' == event.key.keysym.sym) {
+            size_t i = static_cast<size_t>(x);
+            size_t j = static_cast<size_t>(y);
+            if (map.get(i, j) == 9) { // Open the door if the player is standing in front of it
+                auto [di, dj] = map.check_door(i, j);
+                if (di != 0 || dj != 0) {
+                    map.open_door(i + di, j + dj);
+                }
+            }
+        }
     }
 }

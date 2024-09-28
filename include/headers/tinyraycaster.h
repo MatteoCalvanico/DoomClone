@@ -2,6 +2,7 @@
 #define TINYRAYCASTER_H
 
 #include <vector>
+#include <SDL.h>
 
 #include "map.h"
 #include "player.h"
@@ -18,6 +19,6 @@ struct GameState {
 };
 
 // Render the game state to the framebuffer
-void render(FrameBuffer &fb, const GameState &gs);
+void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer);
 
 #endif // TINYRAYCASTER_H

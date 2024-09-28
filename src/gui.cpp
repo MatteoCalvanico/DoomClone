@@ -8,6 +8,8 @@
 #include <thread>
 
 #include <SDL.h>
+#include <SDL_ttf.h>
+#include "../include/sdl/SDL_ttf.h"
 #include "../include/sdl/SDL.h"
 
 #include "../include/headers/utils.h"
@@ -36,6 +38,12 @@ int main() {
     // Initialize SDL and create a window and renderer
     if (SDL_Init(SDL_INIT_VIDEO)) {
         std::cerr << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
+        return -1;
+    }
+
+    // Initialize SDL_ttf
+    if (TTF_Init() == -1) {
+        std::cerr << "Failed to initialize SDL_ttf: " << TTF_GetError() << std::endl;
         return -1;
     }
 
@@ -89,7 +97,7 @@ int main() {
         SDL_Event event;
         if (SDL_PollEvent(&event)) {
             if (SDL_QUIT==event.type || (SDL_KEYDOWN==event.type && SDLK_ESCAPE==event.key.keysym.sym)) break;
-            gs.player.handle_event(event);
+            gs.player.handle_event(event, gs.map);
         }
 
         // Update the game state
@@ -100,7 +108,7 @@ int main() {
         std::sort(gs.monsters.begin(), gs.monsters.end()); // sort it from farthest to closest
 
         // Render the game state to the framebuffer
-        render(fb, gs);
+        render(fb, gs, renderer);
 
         // Copy the framebuffer contents to the screen
         SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);
@@ -113,6 +121,7 @@ int main() {
     SDL_DestroyTexture(framebuffer_texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    TTF_Quit();
     SDL_Quit();
 
     return 0;

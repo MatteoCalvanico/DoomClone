@@ -54,6 +54,7 @@ void draw_map(FrameBuffer &fb, const std::vector<Sprite> &sprites, const Texture
     size_t start_y = fb.h - map.h * cell_h;
 
     for (size_t j = 0; j < map.h; j++) {  // draw the map itself
+        
         for (size_t i = 0; i < map.w; i++) {
             size_t rect_x = start_x + i * cell_w;
             size_t rect_y = start_y + j * cell_h;
@@ -126,20 +127,16 @@ void draw_sprite(FrameBuffer &fb, const Sprite &sprite, const std::vector<float>
 }
 
 /**
- * @brief Renders the game frame by drawing the visibility cone, 3D view, map, and sprites.
+ * @brief Renders the game frame, including the 3D view, sprites, and map.
  * 
- * @param fb The framebuffer to draw on.
- * @param gs The current game state containing the map, player, monsters, and textures.
+ * This function clears the framebuffer, performs ray casting to render the 3D view,
+ * draws sprites, overlays the map, and displays a prompt if the player is near a door.
  * 
- * The function performs the following steps:
- * 1. Clears the framebuffer.
- * 2. Calculates the size of one map cell on the screen.
- * 3. Initializes a depth buffer to store the Z-coordinate based on ray casting.
- * 4. Draws the visibility cone and the 3D view by performing ray casting to find the distance to the first wall in each direction.
- * 5. Draws the map.
- * 6. Draws the sprites.
+ * @param fb The framebuffer to render to.
+ * @param gs The current game state, including the map, player, and sprites.
+ * @param renderer The SDL renderer used for drawing text.
  */
-void render(FrameBuffer &fb, const GameState &gs) {
+void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     const Map &map                     = gs.map;
     const Player &player               = gs.player;
     const std::vector<Sprite> &sprites = gs.monsters;
@@ -161,7 +158,7 @@ void render(FrameBuffer &fb, const GameState &gs) {
         for (float t = 0; t < 20; t += .05) { // Increase the increment to reduce iterations
             float x = player.x + t * cos(angle);
             float y = player.y + t * sin(angle);
-            if (map.is_empty(x, y)) continue; // ray falls within the screen, but does not touch a wall
+            if (map.is_empty(x, y) || map.get(x, y) == 9) continue; // ray falls within the screen, but does not touch a wall
 
             size_t texid = map.get(x, y); // our ray touches a wall, so draw the vertical column to create an illusion of 3D
             assert(texid < tex_walls.count);
@@ -212,4 +209,12 @@ void render(FrameBuffer &fb, const GameState &gs) {
 
     // Draw the map on top of the 3D view
     draw_map(fb, sprites, tex_walls, map, player, cell_w, cell_h);
+
+    // Check if the player is near a door and show "F to open"
+    size_t i = static_cast<size_t>(player.x);
+    size_t j = static_cast<size_t>(player.y);
+    auto [di, dj] = map.check_door(i, j);
+    if (di != 0 || dj != 0) {
+        fb.draw_text(renderer, "F to open", fb.w / 2, fb.h - 50, pack_color(255, 255, 0));
+    }
 }

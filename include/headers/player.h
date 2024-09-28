@@ -15,7 +15,7 @@ public:
     Player(float x, float y, float a, float fov);
 
     void update_position(const Map &map);
-    void handle_event(const SDL_Event &event);
+    void handle_event(const SDL_Event &event, Map &map);
 };
 
 #endif // PLAYER_H
