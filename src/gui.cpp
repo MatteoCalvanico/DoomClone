@@ -42,7 +42,7 @@ int main() {
     FrameBuffer fb{1600, 1050, std::vector<uint32_t>(1024*512, pack_color(255, 255, 255))};
 
     GameState gs{ Map(),                                // game map
-                  {2, 14, 270, M_PI/3., 0, 0},          // player
+                  Player(2, 14, 270, M_PI/3.),          // player
                   { {4, 14, 0, 0},                      // monsters lists
                     {6, 14.50, 1, 0},
                     {8, 13.50, 2, 0}, },
@@ -85,47 +85,28 @@ int main() {
             t1 = t2;
         }
 
-        { // poll events and update player's state (walk/turn flags); TODO: move this block to a more appropriate place
-            SDL_Event event;
-            if (SDL_PollEvent(&event)) {
-                if (SDL_QUIT==event.type || (SDL_KEYDOWN==event.type && SDLK_ESCAPE==event.key.keysym.sym)) break;
-                if (SDL_KEYUP==event.type) {
-                    if ('a'==event.key.keysym.sym || 'd'==event.key.keysym.sym) gs.player.turn = 0;
-                    if ('w'==event.key.keysym.sym || 's'==event.key.keysym.sym) gs.player.walk = 0;
-                }
-                if (SDL_KEYDOWN==event.type) {
-                    if ('a'==event.key.keysym.sym) gs.player.turn = -1;
-                    if ('d'==event.key.keysym.sym) gs.player.turn =  1;
-                    if ('w'==event.key.keysym.sym) gs.player.walk =  1;
-                    if ('s'==event.key.keysym.sym) gs.player.walk = -1;
-                }
-            }
+        // Handle events
+        SDL_Event event;
+        if (SDL_PollEvent(&event)) {
+            if (SDL_QUIT==event.type || (SDL_KEYDOWN==event.type && SDLK_ESCAPE==event.key.keysym.sym)) break;
+            gs.player.handle_event(event);
         }
 
-        { // update player's position; TODO: move this block to a more appropriate place
-            gs.player.a += float(gs.player.turn)*.1; // TODO measure elapsed time and modify the speed accordingly
-            float nx = gs.player.x + gs.player.walk*cos(gs.player.a)*.1;
-            float ny = gs.player.y + gs.player.walk*sin(gs.player.a)*.1;
-
-            if (int(nx)>=0 && int(nx)<int(gs.map.w) && int(ny)>=0 && int(ny)<int(gs.map.h)) {
-                if (gs.map.is_empty(nx, gs.player.y)) gs.player.x = nx;
-                if (gs.map.is_empty(gs.player.x, ny)) gs.player.y = ny;
-            }
-            for (size_t i=0; i<gs.monsters.size(); i++) { // update the distances from the player to each sprite
-                gs.monsters[i].player_dist = std::sqrt(pow(gs.player.x - gs.monsters[i].x, 2) + pow(gs.player.y - gs.monsters[i].y, 2));
-            }
-            std::sort(gs.monsters.begin(), gs.monsters.end()); // sort it from farthest to closest
+        // Update the game state
+        gs.player.update_position(gs.map);
+        for (size_t i=0; i<gs.monsters.size(); i++) { // update the distances from the player to each sprite
+            gs.monsters[i].player_dist = std::sqrt(pow(gs.player.x - gs.monsters[i].x, 2) + pow(gs.player.y - gs.monsters[i].y, 2));
         }
+        std::sort(gs.monsters.begin(), gs.monsters.end()); // sort it from farthest to closest
 
         // Render the game state to the framebuffer
         render(fb, gs);
 
-        { // copy the framebuffer contents to the screen
-            SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);
-            SDL_RenderClear(renderer);
-            SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
-            SDL_RenderPresent(renderer);
-        }
+        // Copy the framebuffer contents to the screen
+        SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
+        SDL_RenderPresent(renderer);
     }
 
     // Clean up SDL resources
