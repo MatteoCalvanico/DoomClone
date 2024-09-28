@@ -40,7 +40,7 @@ int main() {
         return -1;
     }
 
-    FrameBuffer fb{1400, 1050, std::vector<uint32_t>(1024*512, pack_color(255, 255, 255))};
+    FrameBuffer fb{1600, 1050, std::vector<uint32_t>(1024*512, pack_color(255, 255, 255))};
 
     GameState gs{ Map(),                                // game map
                   {2, 14, 270, M_PI/3., 0, 0},          // player
