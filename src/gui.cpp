@@ -13,7 +13,6 @@
 #include "../include/headers/utils.h"
 #include "../include/headers/tinyraycaster.h"
 
-
 /**
  * @file gui.cpp
  * @brief Main entry point for the DoomClone game.
@@ -104,9 +103,9 @@ int main() {
         }
 
         { // update player's position; TODO: move this block to a more appropriate place
-            gs.player.a += float(gs.player.turn)*.05; // TODO measure elapsed time and modify the speed accordingly
-            float nx = gs.player.x + gs.player.walk*cos(gs.player.a)*.05;
-            float ny = gs.player.y + gs.player.walk*sin(gs.player.a)*.05;
+            gs.player.a += float(gs.player.turn)*.1; // TODO measure elapsed time and modify the speed accordingly
+            float nx = gs.player.x + gs.player.walk*cos(gs.player.a)*.1;
+            float ny = gs.player.y + gs.player.walk*sin(gs.player.a)*.1;
 
             if (int(nx)>=0 && int(nx)<int(gs.map.w) && int(ny)>=0 && int(ny)<int(gs.map.h)) {
                 if (gs.map.is_empty(nx, gs.player.y)) gs.player.x = nx;
@@ -123,8 +122,6 @@ int main() {
 
         { // copy the framebuffer contents to the screen
             SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);
-
-            // Clear the renderer and render the framebuffer texture
             SDL_RenderClear(renderer);
             SDL_RenderCopy(renderer, framebuffer_texture, NULL, NULL);
             SDL_RenderPresent(renderer);
@@ -136,7 +133,6 @@ int main() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
-
 
     return 0;
 }
