@@ -8,7 +8,7 @@ TODO
 This game use **SDL2, SDL2_Image AND SDL2_ttf** to work.
 Before build the project you need to follow this [video](https://www.youtube.com/watch?v=9Ca-RVPwnBE&ab_channel=vader) to setup the header and lib file to make the game work; after that you can use the Makefile or this command:
 ```sh
-g++ -Iinclude -Iinclude/sdl -Iinclude/headers -Llib -o DoomClone src/*.cpp -lmingw32 -lSDL2 -lSDL2_image -mconsole
+g++ -Iinclude -Iinclude/sdl -Iinclude/headers -Llib -o DoomClone src/*.cpp -lmingw32 -lSDL2 -lSDL2_image -lSDL2_ttf -mconsole
 ```
 directly in the project's root to compile.
 
