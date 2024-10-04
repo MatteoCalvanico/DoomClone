@@ -16,3 +16,6 @@ directly in the project's root to compile.
 
 #### Credits
 This game was created thanks to this tutorial: [ssloy/tinycaster](https://github.com/ssloy/tinyraycaster), which allowed me to learn the basics of game programming and 3D engines.
+
+
+To better understand the principles of *raycaster* I recommend this page: [Lode's Computer Graphics Tutorial](https://lodev.org/cgtutor/raycasting.html) 
