@@ -123,7 +123,7 @@ void draw_sprite(const Sprite &sprite, const Player &player, FrameBuffer &fb, co
     }
 }
 
-/**
+/**<
  * @brief Draws a gun sprite onto the framebuffer.
  *
  * This function scales and draws a gun sprite from the provided texture onto the framebuffer.
