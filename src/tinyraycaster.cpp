@@ -88,40 +88,37 @@ void draw_map(FrameBuffer &fb, const std::vector<Sprite> &sprites, const Texture
 /**
  * @brief Draws a sprite on the framebuffer.
  *
- * This function renders a sprite onto the framebuffer, taking into account the player's position,
- * direction, and the depth buffer to handle occlusion. The sprite is scaled based on its distance
- * from the player and is drawn only if it is within the player's field of view and not occluded by
- * other objects.
+ * This function renders a sprite on the screen based on the player's position and orientation.
+ * It takes into account the depth buffer to handle occlusion and uses a texture to draw the sprite.
  *
  * @param sprite The sprite to be drawn, containing its position and texture ID.
- * @param depth_buffer A vector containing depth information for each column of the framebuffer.
- * @param fb The framebuffer where the sprite will be drawn.
  * @param player The player object, containing the player's position and viewing angle.
- * @param tex_sprites The texture containing the sprite's image.
+ * @param fb The framebuffer where the sprite will be drawn.
+ * @param depth_buffer A vector containing depth information for each column of the screen.
+ * @param tex_monst The texture object used to draw the sprite.
  */
-void draw_sprite(FrameBuffer &fb, const Sprite &sprite, const std::vector<float> &depth_buffer, const Map &map, const Player &player, const Texture &tex_sprites) {
-
-    fb.draw_rectangle(sprite.x*(fb.w/(map.w*2)), sprite.y*(fb.h/map.h), 6, 6, pack_color(255, 0, 0)); // draw the sprite on the minimap
-
-    // absolute direction from the player to the sprite (in radians)
+void draw_sprite(const Sprite &sprite, const Player &player, FrameBuffer &fb, const std::vector<float> &depth_buffer, const Texture &tex_monst) {
     float sprite_dir = atan2(sprite.y - player.y, sprite.x - player.x);
-    while (sprite_dir - player.a >  M_PI) sprite_dir -= 2*M_PI; // remove unncesessary periods from the relative direction
-    while (sprite_dir - player.a < -M_PI) sprite_dir += 2*M_PI;
+    while (sprite_dir - player.a > M_PI) sprite_dir -= 2 * M_PI;
+    while (sprite_dir - player.a < -M_PI) sprite_dir += 2 * M_PI;
 
-    size_t sprite_screen_size = std::min(1000, static_cast<int>(fb.h/sprite.player_dist)); // screen sprite size
-    int h_offset = (sprite_dir - player.a)*(fb.w/2)/(player.fov) + (fb.w/2)/2 - sprite_screen_size/2; // do not forget the 3D view takes only a half of the framebuffer, thus fb.w/2 for the screen width
-    int v_offset = fb.h/2 - sprite_screen_size/2;
+    float sprite_dist = sqrt(pow(sprite.x - player.x, 2) + pow(sprite.y - player.y, 2));
+    if (sprite_dist > 15) return; // Skip drawing distant sprites
 
-    for (size_t i=0; i<sprite_screen_size; i++) {
-        if (h_offset+int(i)<0 || h_offset+i>=fb.w/2) continue;
-        if (depth_buffer[h_offset+i]<sprite.player_dist) continue; // this sprite column is occluded
-        for (size_t j=0; j<sprite_screen_size; j++) {
-            if (v_offset+int(j)<0 || v_offset+j>=fb.h) continue;
-            uint32_t color = tex_sprites.get(i*tex_sprites.size/sprite_screen_size, j*tex_sprites.size/sprite_screen_size, sprite.tex_id);
-            uint8_t r,g,b,a;
+    size_t sprite_screen_size = std::min(1000, static_cast<int>(fb.h / sprite_dist)); // screen sprite size
+    int h_offset = (sprite_dir - player.a) * (fb.w) / (player.fov) + (fb.w) / 2 - sprite_screen_size / 2; // full screen width
+    int v_offset = fb.h / 2 - sprite_screen_size / 2;
+
+    for (size_t i = 0; i < sprite_screen_size; i++) {
+        if (h_offset + int(i) < 0 || h_offset + i >= fb.w) continue;
+        if (depth_buffer[h_offset + i] < sprite_dist) continue; // this sprite column is occluded
+        for (size_t j = 0; j < sprite_screen_size; j++) {
+            if (v_offset + int(j) < 0 || v_offset + j >= fb.h) continue;
+            uint32_t color = tex_monst.get(i * tex_monst.size / sprite_screen_size, j * tex_monst.size / sprite_screen_size, sprite.tex_id);
+            uint8_t r, g, b, a;
             unpack_color(color, r, g, b, a);
-            if (a>128)
-            fb.set_pixel(fb.w/2 + h_offset+i, v_offset+j, color);
+            if (a > 128)
+                fb.set_pixel(h_offset + i, v_offset + j, color);
         }
     }
 }
@@ -183,28 +180,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
 
     // Draw the sprites
     for (const auto &sprite : sprites) {
-        float sprite_dir = atan2(sprite.y - player.y, sprite.x - player.x);
-        while (sprite_dir - player.a > M_PI) sprite_dir -= 2 * M_PI;
-        while (sprite_dir - player.a < -M_PI) sprite_dir += 2 * M_PI;
-
-        float sprite_dist = sqrt(pow(sprite.x - player.x, 2) + pow(sprite.y - player.y, 2));
-        if (sprite_dist > 15) continue; // Skip drawing distant sprites
-        size_t sprite_screen_size = std::min(1000, static_cast<int>(fb.h / sprite_dist)); // screen sprite size
-        int h_offset = (sprite_dir - player.a) * (fb.w) / (player.fov) + (fb.w) / 2 - sprite_screen_size / 2; // full screen width
-        int v_offset = fb.h / 2 - sprite_screen_size / 2;
-
-        for (size_t i = 0; i < sprite_screen_size; i++) {
-            if (h_offset + int(i) < 0 || h_offset + i >= fb.w) continue;
-            if (depth_buffer[h_offset + i] < sprite_dist) continue; // this sprite column is occluded
-            for (size_t j = 0; j < sprite_screen_size; j++) {
-                if (v_offset + int(j) < 0 || v_offset + j >= fb.h) continue;
-                uint32_t color = tex_monst.get(i * tex_monst.size / sprite_screen_size, j * tex_monst.size / sprite_screen_size, sprite.tex_id);
-                uint8_t r, g, b, a;
-                unpack_color(color, r, g, b, a);
-                if (a > 128)
-                    fb.set_pixel(h_offset + i, v_offset + j, color);
-            }
-        }
+        draw_sprite(sprite, player, fb, depth_buffer, tex_monst);
     }
 
     // Draw the map on top of the 3D view
