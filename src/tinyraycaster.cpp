@@ -188,15 +188,29 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     draw_map(fb, sprites, tex_walls, map, player, cell_w, cell_h);
 
     // Show gun on the screen
-    size_t gun_w = tex_gun.img_w / 2; // Take only the first sprite [No firing animation]
-    size_t gun_h = tex_gun.img_h;
+    // Define the scaling factor
+    float scale_factor = 2; // Adjust this value to make the weapon larger
+
+    // Calculate the new dimensions of the gun sprite
+    size_t gun_w = static_cast<size_t>(tex_gun.img_w / 2 * scale_factor); // Take only the first sprite [No firing animation]
+    size_t gun_h = static_cast<size_t>(tex_gun.img_h * scale_factor);
+
+    // Calculate the centered position of the gun sprite
     size_t gun_x = (fb.w - gun_w) / 2;
     size_t gun_y = fb.h - gun_h;
 
+    // Draw the scaled gun sprite
     for (size_t y = 0; y < gun_h; y++) {
         for (size_t x = 0; x < gun_w; x++) {
-            uint32_t color = tex_gun.get(x, y, 0);    // Get the pixel from the first sprite
-            if (color != pack_color(255, 255, 255)) { // Skip the white pixels
+            // Calculate the corresponding pixel in the original sprite
+            size_t orig_x = static_cast<size_t>(x / scale_factor);
+            size_t orig_y = static_cast<size_t>(y / scale_factor);
+
+            // Get the pixel from the first sprite
+            uint32_t color = tex_gun.get(orig_x, orig_y, 0);
+
+            // Skip the white pixels
+            if (color != pack_color(255, 255, 255)) {
                 fb.set_pixel(gun_x + x, gun_y + y, color);
             }
         }
