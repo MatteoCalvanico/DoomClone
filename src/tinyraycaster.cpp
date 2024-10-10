@@ -188,7 +188,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
         while (sprite_dir - player.a < -M_PI) sprite_dir += 2 * M_PI;
 
         float sprite_dist = sqrt(pow(sprite.x - player.x, 2) + pow(sprite.y - player.y, 2));
-        if (sprite_dist > 10) continue; // Skip drawing distant sprites
+        if (sprite_dist > 15) continue; // Skip drawing distant sprites
         size_t sprite_screen_size = std::min(1000, static_cast<int>(fb.h / sprite_dist)); // screen sprite size
         int h_offset = (sprite_dir - player.a) * (fb.w) / (player.fov) + (fb.w) / 2 - sprite_screen_size / 2; // full screen width
         int v_offset = fb.h / 2 - sprite_screen_size / 2;
