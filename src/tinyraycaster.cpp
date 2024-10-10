@@ -232,7 +232,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     draw_map(fb, sprites, tex_walls, map, player, cell_w, cell_h);
 
     // Show gun on the screen
-    draw_gun(fb, tex_gun, false);
+    draw_gun(fb, tex_gun, player.shooting);
 
     // Check if the player is near a door and show "F to open" - TODO: Fix this
     size_t i = static_cast<size_t>(player.x);

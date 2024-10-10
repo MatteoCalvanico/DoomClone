@@ -2,6 +2,7 @@
 #define PLAYER_H
 
 #include <SDL.h>
+#include <chrono>
 
 #include "map.h"
 
@@ -11,6 +12,8 @@ public:
     float a;        // view direction [angle in degrees]
     float fov;      // field of view  [radians]
     int turn, walk; // walk direction and turn direction
+    bool shooting;  // shooting state
+    std::chrono::time_point<std::chrono::high_resolution_clock> shooting_time; // time when shooting started
 
     Player(float x, float y, float a, float fov);
 

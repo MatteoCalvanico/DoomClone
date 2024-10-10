@@ -3,8 +3,7 @@
 
 #include "../include/headers/player.h"
 
-Player::Player(float x, float y, float a, float fov)
-    : x(x), y(y), a(a), fov(fov), turn(0), walk(0) {}
+Player::Player(float x, float y, float a, float fov) : x(x), y(y), a(a), fov(fov), turn(0), walk(0) {}
 
 /**
  * @brief Updates the player's position based on the current movement and direction.
@@ -27,26 +26,32 @@ void Player::update_position(const Map &map) {
         if (map.is_empty(nx, y)) x = nx;
         if (map.is_empty(x, ny)) y = ny;
     }
+
+    // Reset shooting after 1 second
+    if (shooting && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - shooting_time).count() >= 1) {
+        shooting = false;
+    }
 }
 
 /**
- * @brief Handles keyboard events for player movement.
- *
- * This function processes SDL keyboard events to control the player's movement.
- * It updates the player's turning and walking states based on the key pressed or released.
- *
- * @param event The SDL_Event object containing the event data.
- *
- * The function handles the following keys:
- * - 'a': Turn left
- * - 'd': Turn right
- * - 'w': Walk forward
- * - 's': Walk backward
- *
- * When a key is released (SDL_KEYUP), the corresponding movement state is reset to 0.
- * When a key is pressed (SDL_KEYDOWN), the corresponding movement state is set to:
- * - -1 for turning left or walking backward
- * - 1 for turning right or walking forward
+ * @brief Handles player input events.
+ * 
+ * This function processes various SDL events to control the player's actions
+ * such as movement, turning, shooting, and interacting with the map.
+ * 
+ * @param event The SDL_Event to handle.
+ * @param map The game map, used for interactions like opening doors.
+ * 
+ * Event Handling:
+ * - SDL_KEYUP: Stops movement or turning when 'a', 'd', 'w', or 's' keys are released.
+ * - SDL_KEYDOWN: 
+ *   - 'a': Turns the player left.
+ *   - 'd': Turns the player right.
+ *   - 'w': Moves the player forward.
+ *   - 's': Moves the player backward.
+ *   - 'f': Interacts with the map, such as opening doors if the player is near one.
+ * - SDL_MOUSEBUTTONDOWN: 
+ *   - SDL_BUTTON_LEFT or SDL_BUTTON_RIGHT: Initiates shooting action.
  */
 void Player::handle_event(const SDL_Event &event, Map &map) {
     if (SDL_KEYUP == event.type) {
@@ -67,6 +72,12 @@ void Player::handle_event(const SDL_Event &event, Map &map) {
                     map.open_door(i + di, j + dj);
                 }
             }
+        }
+    }
+    if (SDL_MOUSEBUTTONDOWN == event.type) {
+        if (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT) {
+            shooting = true;
+            shooting_time = std::chrono::high_resolution_clock::now();
         }
     }
 }
