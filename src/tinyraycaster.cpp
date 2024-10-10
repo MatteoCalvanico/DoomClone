@@ -124,6 +124,46 @@ void draw_sprite(const Sprite &sprite, const Player &player, FrameBuffer &fb, co
 }
 
 /**
+ * @brief Draws a gun sprite onto the framebuffer.
+ *
+ * This function scales and draws a gun sprite from the provided texture onto the framebuffer.
+ * The gun sprite is centered horizontally and positioned at the bottom of the screen.
+ * The sprite is scaled by a factor specified by `scale_factor`.
+ * White pixels in the sprite are considered transparent and are not drawn.
+ *
+ * @param fb The framebuffer to draw the gun sprite onto.
+ * @param tex_gun The texture containing the gun sprite.
+ */
+void draw_gun(FrameBuffer &fb, const Texture &tex_gun) {
+    float scale_factor = 2; // Adjust this value to make the weapon larger
+
+    // Calculate the new dimensions of the gun sprite
+    size_t gun_w = static_cast<size_t>(tex_gun.img_w / 2 * scale_factor); // Take only the first sprite [No firing animation] - TODO: Change this to a more general solution
+    size_t gun_h = static_cast<size_t>(tex_gun.img_h * scale_factor);
+
+    // Calculate the centered position of the gun sprite
+    size_t gun_x = (fb.w - gun_w) / 2;
+    size_t gun_y = fb.h - gun_h;
+
+    // Draw the scaled gun sprite
+    for (size_t y = 0; y < gun_h; y++) {
+        for (size_t x = 0; x < gun_w; x++) {
+            // Calculate the corresponding pixel in the original sprite
+            size_t orig_x = static_cast<size_t>(x / scale_factor);
+            size_t orig_y = static_cast<size_t>(y / scale_factor);
+
+            // Get the pixel from the first sprite
+            uint32_t color = tex_gun.get(orig_x, orig_y, 0);
+
+            // Skip the white pixels
+            if (color != pack_color(255, 255, 255)) {
+                fb.set_pixel(gun_x + x, gun_y + y, color);
+            }
+        }
+    }
+}
+
+/**
  * @brief Renders the game frame, including the 3D view, sprites, and map.
  * 
  * This function clears the framebuffer, performs ray casting to render the 3D view,
@@ -188,33 +228,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     draw_map(fb, sprites, tex_walls, map, player, cell_w, cell_h);
 
     // Show gun on the screen
-    // Define the scaling factor
-    float scale_factor = 2; // Adjust this value to make the weapon larger
-
-    // Calculate the new dimensions of the gun sprite
-    size_t gun_w = static_cast<size_t>(tex_gun.img_w / 2 * scale_factor); // Take only the first sprite [No firing animation]
-    size_t gun_h = static_cast<size_t>(tex_gun.img_h * scale_factor);
-
-    // Calculate the centered position of the gun sprite
-    size_t gun_x = (fb.w - gun_w) / 2;
-    size_t gun_y = fb.h - gun_h;
-
-    // Draw the scaled gun sprite
-    for (size_t y = 0; y < gun_h; y++) {
-        for (size_t x = 0; x < gun_w; x++) {
-            // Calculate the corresponding pixel in the original sprite
-            size_t orig_x = static_cast<size_t>(x / scale_factor);
-            size_t orig_y = static_cast<size_t>(y / scale_factor);
-
-            // Get the pixel from the first sprite
-            uint32_t color = tex_gun.get(orig_x, orig_y, 0);
-
-            // Skip the white pixels
-            if (color != pack_color(255, 255, 255)) {
-                fb.set_pixel(gun_x + x, gun_y + y, color);
-            }
-        }
-    }
+    draw_gun(fb, tex_gun);
 
     // Check if the player is near a door and show "F to open" - TODO: Fix this
     size_t i = static_cast<size_t>(player.x);
