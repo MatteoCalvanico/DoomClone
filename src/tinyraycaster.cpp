@@ -133,12 +133,16 @@ void draw_sprite(const Sprite &sprite, const Player &player, FrameBuffer &fb, co
  *
  * @param fb The framebuffer to draw the gun sprite onto.
  * @param tex_gun The texture containing the gun sprite.
+ * @param use_firing_sprite A flag indicating whether to use the firing sprite.
  */
-void draw_gun(FrameBuffer &fb, const Texture &tex_gun) {
+void draw_gun(FrameBuffer &fb, const Texture &tex_gun, bool use_firing_sprite) {
     float scale_factor = 2; // Adjust this value to make the weapon larger
 
+    // Determine the sprite index based on the use_firing_sprite flag
+    size_t sprite_index = use_firing_sprite ? 1 : 0;
+
     // Calculate the new dimensions of the gun sprite
-    size_t gun_w = static_cast<size_t>(tex_gun.img_w / 2 * scale_factor); // Take only the first sprite [No firing animation] - TODO: Change this to a more general solution
+    size_t gun_w = static_cast<size_t>(tex_gun.img_w / 2 * scale_factor);
     size_t gun_h = static_cast<size_t>(tex_gun.img_h * scale_factor);
 
     // Calculate the centered position of the gun sprite
@@ -152,8 +156,8 @@ void draw_gun(FrameBuffer &fb, const Texture &tex_gun) {
             size_t orig_x = static_cast<size_t>(x / scale_factor);
             size_t orig_y = static_cast<size_t>(y / scale_factor);
 
-            // Get the pixel from the first sprite
-            uint32_t color = tex_gun.get(orig_x, orig_y, 0);
+            // Get the pixel from the correct sprite based on sprite_index
+            uint32_t color = tex_gun.get(orig_x, orig_y, sprite_index);
 
             // Skip the white pixels
             if (color != pack_color(255, 255, 255)) {
@@ -228,7 +232,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     draw_map(fb, sprites, tex_walls, map, player, cell_w, cell_h);
 
     // Show gun on the screen
-    draw_gun(fb, tex_gun);
+    draw_gun(fb, tex_gun, false);
 
     // Check if the player is near a door and show "F to open" - TODO: Fix this
     size_t i = static_cast<size_t>(player.x);
