@@ -48,11 +48,12 @@ Texture::Texture(const std::string filename, const uint32_t format) : img_w(0), 
         SDL_FreeSurface(surface);
         return;
     }
-    if (w!=h*int(w/h)) {
+    // Old code that checks if the image contains N square textures packed horizontally (deprecated)
+    /*if (w!=h*int(w/h)) {
         std::cerr << "Error: the texture file must contain N square textures packed horizontally" << std::endl;
         SDL_FreeSurface(surface);
         return;
-    }
+    }*/
     count = w/h;
     size = w/count;
     img_w = w;

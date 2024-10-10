@@ -195,8 +195,8 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
 
     for (size_t y = 0; y < gun_h; y++) {
         for (size_t x = 0; x < gun_w; x++) {
-            uint32_t color = tex_gun.get(x, y, 0); // Get the pixel from the first sprite
-            if (color != pack_color(255, 0, 255, 255)) { // Assuming magenta (255, 0, 255) is the transparent color
+            uint32_t color = tex_gun.get(x, y, 0);    // Get the pixel from the first sprite
+            if (color != pack_color(255, 255, 255)) { // Skip the white pixels
                 fb.set_pixel(gun_x + x, gun_y + y, color);
             }
         }
