@@ -216,7 +216,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
         }
     }
 
-    // Check if the player is near a door and show "F to open"
+    // Check if the player is near a door and show "F to open" - TODO: Fix this
     size_t i = static_cast<size_t>(player.x);
     size_t j = static_cast<size_t>(player.y);
     auto [di, dj] = map.check_door(i, j);
