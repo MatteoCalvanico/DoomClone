@@ -55,7 +55,8 @@ int main() {
                     {6, 14.50, 1, 0},
                     {8, 13.50, 2, 0}, },
                   Texture("texture/walltext.bmp", SDL_PIXELFORMAT_ABGR8888),      // textures for the walls
-                  Texture("texture/monsters.bmp", SDL_PIXELFORMAT_ABGR8888) };    // textures for the monsters
+                  Texture("texture/monsters.bmp", SDL_PIXELFORMAT_ABGR8888),      // textures for the monsters
+                  Texture("texture/pistol.bmp", SDL_PIXELFORMAT_ABGR8888) };    // textures for the gun  
     if (!gs.tex_walls.count || !gs.tex_monst.count) {
         std::cerr << "Failed to load textures" << std::endl;
         return -1;

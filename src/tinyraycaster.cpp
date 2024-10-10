@@ -139,6 +139,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     const std::vector<Sprite> &sprites = gs.monsters;
     const Texture &tex_walls           = gs.tex_walls;
     const Texture &tex_monst           = gs.tex_monst;
+    const Texture &tex_gun             = gs.tex_gun;
 
     fb.clear(pack_color(255, 255, 255)); // clear the screen
 
@@ -185,6 +186,21 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
 
     // Draw the map on top of the 3D view
     draw_map(fb, sprites, tex_walls, map, player, cell_w, cell_h);
+
+    // Show gun on the screen
+    size_t gun_w = tex_gun.img_w / 2; // Take only the first sprite [No firing animation]
+    size_t gun_h = tex_gun.img_h;
+    size_t gun_x = (fb.w - gun_w) / 2;
+    size_t gun_y = fb.h - gun_h;
+
+    for (size_t y = 0; y < gun_h; y++) {
+        for (size_t x = 0; x < gun_w; x++) {
+            uint32_t color = tex_gun.get(x, y, 0); // Get the pixel from the first sprite
+            if (color != pack_color(255, 0, 255, 255)) { // Assuming magenta (255, 0, 255) is the transparent color
+                fb.set_pixel(gun_x + x, gun_y + y, color);
+            }
+        }
+    }
 
     // Check if the player is near a door and show "F to open"
     size_t i = static_cast<size_t>(player.x);

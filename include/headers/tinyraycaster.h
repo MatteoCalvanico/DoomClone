@@ -16,6 +16,7 @@ struct GameState {
     std::vector<Sprite> monsters;
     Texture tex_walls;
     Texture tex_monst;
+    Texture tex_gun;
 };
 
 // Render the game state to the framebuffer
