@@ -28,7 +28,7 @@ void Player::update_position(const Map &map) {
     }
 
     // Reset shooting after 1 second
-    if (shooting && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - shooting_time).count() >= 1) {
+    if (shooting && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - shooting_time).count() >= 100) {
         shooting = false;
     }
 }
