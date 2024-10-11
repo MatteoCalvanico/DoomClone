@@ -27,7 +27,7 @@ void Player::update_position(const Map &map) {
         if (map.is_empty(x, ny)) y = ny;
     }
 
-    // Reset shooting after 1 second
+    // Reset shooting after 100 milliseconds
     if (shooting && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - shooting_time).count() >= 100) {
         shooting = false;
     }
