@@ -136,7 +136,7 @@ void draw_sprite(const Sprite &sprite, const Player &player, FrameBuffer &fb, co
  * @param use_firing_sprite A flag indicating whether to use the firing sprite.
  */
 void draw_gun(FrameBuffer &fb, const Texture &tex_gun, bool use_firing_sprite) {
-    float scale_factor = 2; // Adjust this value to make the weapon larger
+    float scale_factor = 1; // Adjust this value to make the weapon larger
 
     // Determine the sprite index based on the use_firing_sprite flag
     size_t sprite_index = use_firing_sprite ? 1 : 0;
@@ -182,25 +182,32 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
 
     fb.clear(pack_color(255, 255, 255)); // clear the screen
 
-    const size_t cell_w = fb.w / (gs.map.w * 4); // size of one map cell on the screen
+    // size of one map cell on the screen
+    const size_t cell_w = fb.w / (gs.map.w * 4);
     const size_t cell_h = fb.h / (gs.map.h * 4);
 
     std::vector<float> depth_buffer(fb.w, 1e3); // buffer to store the Z-coordinate based on the ray casting
 
-    float posX = gs.player.x;
-    float posY = gs.player.y;
+    // player's position
+    float posX = gs.player.x;       
+    float posY = gs.player.y;       
+
+    // direction vector
     float dirX = cos(gs.player.a);
-    float dirY = sin(gs.player.a);
+    float dirY = sin(gs.player.a); 
+
+    // camera plane
     float planeX = cos(gs.player.a + M_PI / 2) * gs.player.fov;
     float planeY = sin(gs.player.a + M_PI / 2) * gs.player.fov;
 
-    // FLOOR CASTING
+    // -------------- 3D engine --------------
+    // Draw the floor and ceiling
     for (int y = 0; y < fb.h; y++) {
-        float rayDirX0 = dirX - planeX;
-        float rayDirY0 = dirY - planeY;
-        float rayDirX1 = dirX + planeX;
-        float rayDirY1 = dirY + planeY;
-
+        float rayDirX0 = dirX - planeX; // vectors for right and left sides of the camera plane
+        float rayDirY0 = dirY - planeY; // the 2d ray dir without the distortion correction
+        float rayDirX1 = dirX + planeX; // vectors for right and left sides of the camera plane
+        float rayDirY1 = dirY + planeY; // the 2d ray dir without the distortion correction
+        
         int p = y - fb.h / 2;
         float posZ = 0.5 * fb.h;
         float rowDistance = posZ / p;
@@ -211,16 +218,18 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
         float floorX = posX + rowDistance * rayDirX0;
         float floorY = posY + rowDistance * rayDirY0;
 
+        // Draw the floor from the bottom to the center of the screen
         for (int x = 0; x < fb.w; ++x) {
             int cellX = (int)(floorX);
             int cellY = (int)(floorY);
 
-            int tx = (int)(gs.tex_walls.size * (floorX - cellX)) & (gs.tex_walls.size - 1);
-            int ty = (int)(gs.tex_walls.size * (floorY - cellY)) & (gs.tex_walls.size - 1);
+            int tx = (int)(gs.tex_walls.size * (floorX - cellX)) & (gs.tex_walls.size - 1); 
+            int ty = (int)(gs.tex_walls.size * (floorY - cellY)) & (gs.tex_walls.size - 1); 
 
             floorX += floorStepX;
             floorY += floorStepY;
 
+            // Textures for the floor and ceiling
             int floorTexture = 5;
             int ceilingTexture = 2;
             uint32_t color;
@@ -237,14 +246,17 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
         }
     }
 
-    // 3D engine
+    // Draw the walls
     for (size_t i = 0; i < fb.w; i++) {
         float angle = gs.player.a - gs.player.fov / 2 + gs.player.fov * i / float(fb.w); // current angle
+        int render_dist = 20; // maximum depth to render
+        float ray_increment = 0.05; // increase to reduce iterations and increase performance [worse quality]
 
         // Ray casting - find the distance to the first wall in the specific direction
-        for (float t = 0; t < 20; t += .05) { // Increase the increment to reduce iterations
-            float x = gs.player.x + t * cos(angle);
-            float y = gs.player.y + t * sin(angle);
+        for (float t = 0; t < render_dist; t += ray_increment) { 
+            float x = posX + t * cos(angle);
+            float y = posY + t * sin(angle);
+
             if (gs.map.is_empty(x, y) || gs.map.get(x, y) == 9) continue; // ray falls within the screen, but does not touch a wall
 
             size_t texid = gs.map.get(x, y); // our ray touches a wall, so draw the vertical column to create an illusion of 3D
@@ -267,6 +279,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
             break;
         }
     }
+    // ------------------------------------
 
     // Draw the sprites
     for (const auto &sprite : gs.monsters) {
