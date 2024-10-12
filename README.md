@@ -22,6 +22,9 @@ docker build -t doomclone .
 docker run -it --rm doomclone
 ```
 
+### Bug to fix
+- The player can shoot and kill enemies even if they are behind a wall
+
 #### Credits
 This game was created thanks to this tutorial: [ssloy/tinycaster](https://github.com/ssloy/tinyraycaster), which allowed me to learn the basics of game programming and 3D engines.
 

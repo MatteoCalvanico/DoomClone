@@ -5,6 +5,7 @@
 
 // Forward declaration of Player class
 class Player;
+class Map;
 
 struct Sprite {
     float x, y;
@@ -12,7 +13,7 @@ struct Sprite {
     float player_dist;
     
     bool operator < (const Sprite& s) const;
-    void update_position(const Player& player, float speed);
+    void update_position(const Player& player, const Map& map, float speed);
 };
 
 #endif // SPRITE_H

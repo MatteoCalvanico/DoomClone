@@ -107,7 +107,7 @@ int main() {
         // Update the game state
         gs.player.update_position(gs.map); // Update the player's position
 
-        for (auto& monster : gs.monsters) { monster.update_position(gs.player, 0.05f); } // Update the monsters' positions
+        for (auto& monster : gs.monsters) { monster.update_position(gs.player, gs.map, 0.05f); } // Update the monsters' positions
         
         for (size_t i=0; i<gs.monsters.size(); i++) { // update the distances from the player to each sprite
             gs.monsters[i].player_dist = std::sqrt(pow(gs.player.x - gs.monsters[i].x, 2) + pow(gs.player.y - gs.monsters[i].y, 2));
