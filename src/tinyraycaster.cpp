@@ -192,13 +192,17 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     float posX = gs.player.x;       
     float posY = gs.player.y;       
 
+    float playerViewDir = gs.player.a; // player's view direction
+
+    float playerFov = gs.player.fov; // player's field of view
+
     // direction vector
     float dirX = cos(gs.player.a);
     float dirY = sin(gs.player.a); 
 
     // camera plane
-    float planeX = cos(gs.player.a + M_PI / 2) * gs.player.fov;
-    float planeY = sin(gs.player.a + M_PI / 2) * gs.player.fov;
+    float planeX = cos(gs.player.a + M_PI / 2) * playerFov;
+    float planeY = sin(gs.player.a + M_PI / 2) * playerFov;
 
     // -------------- 3D engine --------------
     // Draw the floor and ceiling
@@ -248,8 +252,8 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
 
     // Draw the walls
     for (size_t i = 0; i < fb.w; i++) {
-        float angle = gs.player.a - gs.player.fov / 2 + gs.player.fov * i / float(fb.w); // current angle
-        int render_dist = 20; // maximum depth to render
+        float angle = playerViewDir - playerFov / 2 + playerFov * i / float(fb.w); // current angle
+        int render_dist = 20;       // maximum depth to render
         float ray_increment = 0.05; // increase to reduce iterations and increase performance [worse quality]
 
         // Ray casting - find the distance to the first wall in the specific direction
@@ -262,15 +266,16 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
             size_t texid = gs.map.get(x, y); // our ray touches a wall, so draw the vertical column to create an illusion of 3D
             assert(texid < gs.tex_walls.count);
 
-            float dist = t * cos(angle - gs.player.a);
+            float dist = t * cos(angle - playerViewDir);
             depth_buffer[i] = dist; // save the distance to the wall
-            size_t column_height = std::min(2000, int(fb.h / dist));
+
+            size_t column_height = std::min(2000, int(fb.h / dist)); // the height of the column depends on the distance
 
             int x_texcoord = wall_x_texcoord(x, y, gs.tex_walls);
             std::vector<uint32_t> column = gs.tex_walls.get_scaled_column(texid, x_texcoord, column_height);
-            int pix_x = i; // we are drawing at the full width of the screen
 
-            for (size_t j = 0; j < column_height; j++) {
+            int pix_x = i; // we are drawing at the full width of the screen
+            for (size_t j = 0; j < column_height; j++) { // draw the column
                 int pix_y = j + fb.h / 2 - column_height / 2;
                 if (pix_y >= 0 && pix_y < int(fb.h)) {
                     fb.set_pixel(pix_x, pix_y, column[j]);
@@ -279,7 +284,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
             break;
         }
     }
-    // ------------------------------------
+    // --------------------------------------
 
     // Draw the sprites
     for (const auto &sprite : gs.monsters) {
@@ -293,6 +298,6 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     draw_gun(fb, tex_gun, gs.player.shooting);
 
     // Check if the player is near a door and show "F to open" - TODO: Fix this
-    size_t i = static_cast<size_t>(gs.player.x);
-    size_t j = static_cast<size_t>(gs.player.y);
+    size_t i = static_cast<size_t>(posX);
+    size_t j = static_cast<size_t>(posY);
 }
