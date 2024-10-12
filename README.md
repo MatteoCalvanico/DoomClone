@@ -2,7 +2,8 @@
 A simple C++ game similar to Doom and Wolfenstein 3D.
 
 ## Commands AND rule
-TODO
+**WASD**: Move
+**Sx or Dx mouse**: Fire
 
 ### Info
 This game use **SDL2, SDL2_Image AND SDL2_ttf** to work.
