@@ -168,19 +168,27 @@ void draw_gun(FrameBuffer &fb, const Texture &tex_gun, bool use_firing_sprite) {
 }
 
 /**
- * @brief Renders the game frame, including the 3D view, sprites, and map.
+ * @brief Renders the game frame.
  * 
- * This function clears the framebuffer, performs ray casting to render the 3D view,
- * draws sprites, overlays the map, and displays a prompt if the player is near a door.
+ * This function is responsible for rendering the entire game frame, including the floor, ceiling, walls, sprites, and HUD elements.
  * 
  * @param fb The framebuffer to render to.
- * @param gs The current game state, including the map, player, and sprites.
- * @param renderer The SDL renderer used for drawing text.
+ * @param gs The current game state, containing player information, textures, and map data.
+ * @param renderer The SDL renderer used for rendering.
+ * 
+ * The rendering process includes:
+ * - Clearing the screen.
+ * - Drawing the floor and ceiling using ray casting.
+ * - Drawing the walls using Digital Differential Analysis (DDA) for ray casting.
+ * - Drawing the sprites (monsters) in the game.
+ * - Drawing the map overlay on top of the 3D view.
+ * - Drawing the player's gun on the screen.
+ * - Checking if the player is near a door and showing a prompt to open it.
  */
 void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
-    const Texture &tex_gun = gs.tex_gun;
-
     fb.clear(pack_color(255, 255, 255)); // clear the screen
+
+    const Texture &tex_gun = gs.tex_gun;
 
     // size of one map cell on the screen
     const size_t cell_w = fb.w / (gs.map.w * 4);
@@ -194,15 +202,18 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
 
     float playerViewDir = gs.player.a; // player's view direction
 
-    float playerFov = gs.player.fov; // player's field of view
+    float playerFov = gs.player.fov;   // player's field of view
+
+    const float aspect_ratio = float(fb.h) / fb.w; // aspect ratio of the screen
 
     // direction vector
-    float dirX = cos(gs.player.a);
-    float dirY = sin(gs.player.a); 
+    float dirX = cos(playerViewDir);
+    float dirY = sin(playerViewDir); 
 
     // camera plane
-    float planeX = cos(gs.player.a + M_PI / 2) * playerFov;
-    float planeY = sin(gs.player.a + M_PI / 2) * playerFov;
+    float planeX = cos(playerViewDir + M_PI / 2) * playerFov;
+    float planeY = sin(playerViewDir + M_PI / 2) * playerFov;
+
 
     // -------------- 3D engine --------------
     // Draw the floor and ceiling
@@ -233,7 +244,7 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
             floorX += floorStepX;
             floorY += floorStepY;
 
-            // Textures for the floor and ceiling
+            // textures for the floor and ceiling
             int floorTexture = 5;
             int ceilingTexture = 2;
             uint32_t color;
@@ -250,38 +261,90 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
         }
     }
 
-    // Draw the walls
-    for (size_t i = 0; i < fb.w; i++) {
-        float angle = playerViewDir - playerFov / 2 + playerFov * i / float(fb.w); // current angle
-        int render_dist = 20;       // maximum depth to render
-        float ray_increment = 0.05; // increase to reduce iterations and increase performance [worse quality]
+    // Draw the walls - Ray casting with DDA
+    for (size_t x = 0; x < fb.w; x++) {
+        float ray_angle = (playerViewDir - playerFov / 2) + (x / float(fb.w)) * playerFov; // current ray angle
 
-        // Ray casting - find the distance to the first wall in the specific direction
-        for (float t = 0; t < render_dist; t += ray_increment) { 
-            float x = posX + t * cos(angle);
-            float y = posY + t * sin(angle);
+        // calculate the direction of the ray
+        float ray_dir_x = cos(ray_angle);
+        float ray_dir_y = sin(ray_angle);
 
-            if (gs.map.is_empty(x, y) || gs.map.get(x, y) == 9) continue; // ray falls within the screen, but does not touch a wall
+        // the cell of the map in which we are
+        int map_x = int(posX); 
+        int map_y = int(posY); 
 
-            size_t texid = gs.map.get(x, y); // our ray touches a wall, so draw the vertical column to create an illusion of 3D
-            assert(texid < gs.tex_walls.count);
+        float side_dist_x; // length of ray from current position to next x or y-side
+        float side_dist_y; // length of ray from current position to next x or y-side
 
-            float dist = t * cos(angle - playerViewDir);
-            depth_buffer[i] = dist; // save the distance to the wall
+        float delta_dist_x = std::abs(1 / ray_dir_x); // length of ray from one x or y-side to next x or y-side 
+        float delta_dist_y = std::abs(1 / ray_dir_y); // length of ray from one x or y-side to next x or y-side
 
-            size_t column_height = std::min(2000, int(fb.h / dist)); // the height of the column depends on the distance
+        float perp_wall_dist; // length of the ray from the player to the wall
 
-            int x_texcoord = wall_x_texcoord(x, y, gs.tex_walls);
-            std::vector<uint32_t> column = gs.tex_walls.get_scaled_column(texid, x_texcoord, column_height);
+        // direction to increment x and y (either +1 or -1)
+        int step_x; 
+        int step_y;
 
-            int pix_x = i; // we are drawing at the full width of the screen
-            for (size_t j = 0; j < column_height; j++) { // draw the column
-                int pix_y = j + fb.h / 2 - column_height / 2;
-                if (pix_y >= 0 && pix_y < int(fb.h)) {
-                    fb.set_pixel(pix_x, pix_y, column[j]);
-                }
+        bool hit = false; // was there a wall hit?
+        int side;         // was a NS or a EW wall hit?
+
+        // calculate step and initial sideDist [X]
+        if (ray_dir_x < 0) {
+            step_x = -1;
+            side_dist_x = (posX - map_x) * delta_dist_x;
+        } else {
+            step_x = 1;
+            side_dist_x = (map_x + 1.0 - posX) * delta_dist_x;
+        }
+
+        // calculate step and initial sideDist [Y]
+        if (ray_dir_y < 0) {
+            step_y = -1;
+            side_dist_y = (posY - map_y) * delta_dist_y;
+        } else {
+            step_y = 1;
+            side_dist_y = (map_y + 1.0 - posY) * delta_dist_y;
+        }
+
+        // perform Digital Differential Analysis (DDA)
+        while (!hit) {
+            if (side_dist_x < side_dist_y) { 
+                side_dist_x += delta_dist_x;
+                map_x += step_x;
+                side = 0;
+            } else {
+                side_dist_y += delta_dist_y;
+                map_y += step_y;
+                side = 1;
             }
-            break;
+
+            // check if the ray has hit a wall
+            int map_value = gs.map.get(map_x, map_y);        
+            if (map_value > 0 && map_value != 9) hit = true; // 9 is where the player stay to open the door
+        }
+
+        // calculate distance projected on camera direction (Euclidean distance will give fisheye effect!)
+        if (side == 0) 
+            perp_wall_dist = (map_x - posX + (1 - step_x) / 2) / ray_dir_x;
+        else
+            perp_wall_dist = (map_y - posY + (1 - step_y) / 2) / ray_dir_y;
+
+        int line_height = (int)(fb.h / perp_wall_dist); // height of the line to draw on the screen
+
+        int draw_start = -line_height / 2 + fb.h / 2;
+        if (draw_start < 0) draw_start = 0;     
+        int draw_end = line_height / 2 + fb.h / 2;
+        if (draw_end >= fb.h) draw_end = fb.h - 1;
+
+        // calculate value of wall_x
+        int tex_x = wall_x_texcoord(posX + ray_dir_x * perp_wall_dist, posY + ray_dir_y * perp_wall_dist, gs.tex_walls);
+
+        // draw the wall slice
+        for (int y = draw_start; y < draw_end; y++) {
+            int d = y * 256 - fb.h * 128 + line_height * 128;
+            int tex_y = ((d * gs.tex_walls.size) / line_height) / 256;
+            uint32_t color = gs.tex_walls.get(tex_x, tex_y, gs.map.get(map_x, map_y));
+            fb.set_pixel(x, y, color);
         }
     }
     // --------------------------------------
