@@ -5,7 +5,7 @@ A simple C++ game similar to Doom and Wolfenstein 3D.
 - **WASD**: Move
 - **Sx or Dx mouse**: Fire
 
-### Info
+## info AND Compilation
 This game use **SDL2, SDL2_Image AND SDL2_ttf** to work.
 Before build the project you need to follow this [video](https://www.youtube.com/watch?v=9Ca-RVPwnBE&ab_channel=vader) to setup the header and lib file to make the game work; after that you can use the Makefile or this command:
 ```sh
