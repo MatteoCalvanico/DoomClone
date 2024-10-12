@@ -14,6 +14,8 @@
 
 #include "../include/headers/utils.h"
 #include "../include/headers/tinyraycaster.h"
+#include "../include/headers/sprite.h"
+#include "../include/headers/player.h"
 
 /**
  * @file gui.cpp
@@ -94,6 +96,7 @@ int main() {
             t1 = t2;
         }
 
+
         // Handle events
         SDL_Event event;
         if (SDL_PollEvent(&event)) {
@@ -102,14 +105,19 @@ int main() {
         }
 
         // Update the game state
-        gs.player.update_position(gs.map);
+        gs.player.update_position(gs.map); // Update the player's position
+
+        for (auto& monster : gs.monsters) { monster.update_position(gs.player, 0.05f); } // Update the monsters' positions
+        
         for (size_t i=0; i<gs.monsters.size(); i++) { // update the distances from the player to each sprite
             gs.monsters[i].player_dist = std::sqrt(pow(gs.player.x - gs.monsters[i].x, 2) + pow(gs.player.y - gs.monsters[i].y, 2));
         }
         std::sort(gs.monsters.begin(), gs.monsters.end()); // sort it from farthest to closest
 
+
         // Render the game state to the framebuffer
         render(fb, gs, renderer);
+
 
         // Copy the framebuffer contents to the screen
         SDL_UpdateTexture(framebuffer_texture, NULL, reinterpret_cast<void *>(fb.img.data()), fb.w*4);

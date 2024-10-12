@@ -6,6 +6,9 @@
 #include <vector>
 #include <sprite.h>
 
+// Forward declaration of Sprite class
+class Sprite;
+
 #include "map.h"
 
 class Player {
