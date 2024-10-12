@@ -187,6 +187,56 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
 
     std::vector<float> depth_buffer(fb.w, 1e3); // buffer to store the Z-coordinate based on the ray casting
 
+    float posX = gs.player.x;
+    float posY = gs.player.y;
+    float dirX = cos(gs.player.a);
+    float dirY = sin(gs.player.a);
+    float planeX = cos(gs.player.a + M_PI / 2) * gs.player.fov;
+    float planeY = sin(gs.player.a + M_PI / 2) * gs.player.fov;
+
+    // FLOOR CASTING
+    for (int y = 0; y < fb.h; y++) {
+        float rayDirX0 = dirX - planeX;
+        float rayDirY0 = dirY - planeY;
+        float rayDirX1 = dirX + planeX;
+        float rayDirY1 = dirY + planeY;
+
+        int p = y - fb.h / 2;
+        float posZ = 0.5 * fb.h;
+        float rowDistance = posZ / p;
+
+        float floorStepX = rowDistance * (rayDirX1 - rayDirX0) / fb.w;
+        float floorStepY = rowDistance * (rayDirY1 - rayDirY0) / fb.w;
+
+        float floorX = posX + rowDistance * rayDirX0;
+        float floorY = posY + rowDistance * rayDirY0;
+
+        for (int x = 0; x < fb.w; ++x) {
+            int cellX = (int)(floorX);
+            int cellY = (int)(floorY);
+
+            int tx = (int)(gs.tex_walls.size * (floorX - cellX)) & (gs.tex_walls.size - 1);
+            int ty = (int)(gs.tex_walls.size * (floorY - cellY)) & (gs.tex_walls.size - 1);
+
+            floorX += floorStepX;
+            floorY += floorStepY;
+
+            int floorTexture = 5;
+            int ceilingTexture = 2;
+            uint32_t color;
+
+            // floor
+            color = gs.tex_walls.get(tx, ty, floorTexture);
+            color = (color >> 1) & 8355711; // make a bit darker
+            fb.set_pixel(x, y, color);
+
+            // ceiling (symmetrical, at screenHeight - y - 1 instead of y)
+            color = gs.tex_walls.get(tx, ty, ceilingTexture);
+            color = (color >> 1) & 8355711; // make a bit darker
+            fb.set_pixel(x, fb.h - y - 1, color);
+        }
+    }
+
     // 3D engine
     for (size_t i = 0; i < fb.w; i++) {
         float angle = gs.player.a - gs.player.fov / 2 + gs.player.fov * i / float(fb.w); // current angle
