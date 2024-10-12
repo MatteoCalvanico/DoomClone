@@ -328,6 +328,8 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
             perp_wall_dist = (map_x - posX + (1 - step_x) / 2) / ray_dir_x;
         else
             perp_wall_dist = (map_y - posY + (1 - step_y) / 2) / ray_dir_y;
+        
+        depth_buffer[x] = perp_wall_dist; // save the distance for the current column
 
         int line_height = (int)(fb.h / perp_wall_dist); // height of the line to draw on the screen
 

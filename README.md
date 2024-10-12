@@ -4,6 +4,7 @@ A simple C++ game similar to Doom and Wolfenstein 3D.
 ## Commands AND rule
 - **WASD**: Move
 - **SX or DX mouse**: Fire
+- **F**: Open the doors
 - **ESC**: Quit
 
 ## info AND Compilation
