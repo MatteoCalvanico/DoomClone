@@ -1,5 +1,6 @@
 # DoomClone
 A simple C++ game similar to Doom and Wolfenstein 3D.
+![Screenshot](output/12-10-24.png)
 
 ## Commands AND rule
 - **WASD**: Move

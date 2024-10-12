@@ -53,9 +53,9 @@ int main() {
 
     GameState gs{ Map(),                                // game map
                   Player(2, 14, 270, M_PI/3.),          // player
-                  { {4, 14, 0, 0},                      // monsters lists
-                    {6, 14.50, 1, 0},
-                    {8, 13.50, 2, 0}, },
+                  { {8, 14, 3, 0},                      // monsters lists
+                    {9, 14.50, 3, 0},
+                    {10, 13.50, 3, 0}, },
                   Texture("texture/walltext.bmp", SDL_PIXELFORMAT_ABGR8888),          // textures for the walls
                   Texture("texture/monsters.bmp", SDL_PIXELFORMAT_ABGR8888),          // textures for the monsters
                   Texture("texture/pistolSprites.bmp", SDL_PIXELFORMAT_ABGR8888) };   // textures for the gun  
