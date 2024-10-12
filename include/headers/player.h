@@ -3,6 +3,8 @@
 
 #include <SDL.h>
 #include <chrono>
+#include <vector>
+#include <sprite.h>
 
 #include "map.h"
 
@@ -18,7 +20,8 @@ public:
     Player(float x, float y, float a, float fov);
 
     void update_position(const Map &map);
-    void handle_event(const SDL_Event &event, Map &map);
+    void handle_event(const SDL_Event &event, Map &map, std::vector<Sprite> &monsters);
+    void check_and_remove_hit_monster(std::vector<Sprite> &monsters);
 };
 
 #endif // PLAYER_H

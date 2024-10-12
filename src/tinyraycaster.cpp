@@ -178,39 +178,34 @@ void draw_gun(FrameBuffer &fb, const Texture &tex_gun, bool use_firing_sprite) {
  * @param renderer The SDL renderer used for drawing text.
  */
 void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
-    const Map &map                     = gs.map;
-    const Player &player               = gs.player;
-    const std::vector<Sprite> &sprites = gs.monsters;
-    const Texture &tex_walls           = gs.tex_walls;
-    const Texture &tex_monst           = gs.tex_monst;
-    const Texture &tex_gun             = gs.tex_gun;
+    const Texture &tex_gun = gs.tex_gun;
 
     fb.clear(pack_color(255, 255, 255)); // clear the screen
 
-    const size_t cell_w = fb.w / (map.w * 4); // size of one map cell on the screen
-    const size_t cell_h = fb.h / (map.h * 4);
+    const size_t cell_w = fb.w / (gs.map.w * 4); // size of one map cell on the screen
+    const size_t cell_h = fb.h / (gs.map.h * 4);
 
     std::vector<float> depth_buffer(fb.w, 1e3); // buffer to store the Z-coordinate based on the ray casting
 
     // 3D engine
     for (size_t i = 0; i < fb.w; i++) {
-        float angle = player.a - player.fov / 2 + player.fov * i / float(fb.w); // current angle
+        float angle = gs.player.a - gs.player.fov / 2 + gs.player.fov * i / float(fb.w); // current angle
 
         // Ray casting - find the distance to the first wall in the specific direction
         for (float t = 0; t < 20; t += .05) { // Increase the increment to reduce iterations
-            float x = player.x + t * cos(angle);
-            float y = player.y + t * sin(angle);
-            if (map.is_empty(x, y) || map.get(x, y) == 9) continue; // ray falls within the screen, but does not touch a wall
+            float x = gs.player.x + t * cos(angle);
+            float y = gs.player.y + t * sin(angle);
+            if (gs.map.is_empty(x, y) || gs.map.get(x, y) == 9) continue; // ray falls within the screen, but does not touch a wall
 
-            size_t texid = map.get(x, y); // our ray touches a wall, so draw the vertical column to create an illusion of 3D
-            assert(texid < tex_walls.count);
+            size_t texid = gs.map.get(x, y); // our ray touches a wall, so draw the vertical column to create an illusion of 3D
+            assert(texid < gs.tex_walls.count);
 
-            float dist = t * cos(angle - player.a);
+            float dist = t * cos(angle - gs.player.a);
             depth_buffer[i] = dist; // save the distance to the wall
             size_t column_height = std::min(2000, int(fb.h / dist));
 
-            int x_texcoord = wall_x_texcoord(x, y, tex_walls);
-            std::vector<uint32_t> column = tex_walls.get_scaled_column(texid, x_texcoord, column_height);
+            int x_texcoord = wall_x_texcoord(x, y, gs.tex_walls);
+            std::vector<uint32_t> column = gs.tex_walls.get_scaled_column(texid, x_texcoord, column_height);
             int pix_x = i; // we are drawing at the full width of the screen
 
             for (size_t j = 0; j < column_height; j++) {
@@ -224,21 +219,17 @@ void render(FrameBuffer &fb, const GameState &gs, SDL_Renderer* renderer) {
     }
 
     // Draw the sprites
-    for (const auto &sprite : sprites) {
-        draw_sprite(sprite, player, fb, depth_buffer, tex_monst);
+    for (const auto &sprite : gs.monsters) {
+        draw_sprite(sprite, gs.player, fb, depth_buffer, gs.tex_monst);
     }
 
     // Draw the map on top of the 3D view
-    draw_map(fb, sprites, tex_walls, map, player, cell_w, cell_h);
+    draw_map(fb, gs.monsters, gs.tex_walls, gs.map, gs.player, cell_w, cell_h);
 
     // Show gun on the screen
-    draw_gun(fb, tex_gun, player.shooting);
+    draw_gun(fb, tex_gun, gs.player.shooting);
 
     // Check if the player is near a door and show "F to open" - TODO: Fix this
-    size_t i = static_cast<size_t>(player.x);
-    size_t j = static_cast<size_t>(player.y);
-    auto [di, dj] = map.check_door(i, j);
-    if (di != 0 || dj != 0) {
-        fb.draw_text(renderer, "F to open", fb.w / 2, fb.h - 50, pack_color(255, 255, 0));
-    }
+    size_t i = static_cast<size_t>(gs.player.x);
+    size_t j = static_cast<size_t>(gs.player.y);
 }

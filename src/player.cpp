@@ -34,6 +34,32 @@ void Player::update_position(const Map &map) {
 }
 
 /**
+ * @brief Checks for monsters within the player's field of view and removes them if they are hit.
+ * 
+ * This function iterates through a list of monsters and calculates the direction and distance
+ * of each monster relative to the player. If a monster is within a certain distance and within
+ * the player's field of view, it is considered hit and removed from the list.
+ * 
+ * @param monsters A reference to a vector of Sprite objects representing the monsters.
+ */
+void Player::check_and_remove_hit_monster(std::vector<Sprite> &monsters) {
+    const float shooting_fov = fov / 10; // Shooting range is 1/10 of the player's field of view, this avoids to eliminate monsters that are not in the center of the screen
+
+    for (auto it = monsters.begin(); it != monsters.end(); ) {
+        float sprite_dir = atan2(it->y - y, it->x - x);
+        while (sprite_dir - a > M_PI) sprite_dir -= 2 * M_PI;
+        while (sprite_dir - a < -M_PI) sprite_dir += 2 * M_PI;
+
+        float sprite_dist = sqrt(pow(it->x - x, 2) + pow(it->y - y, 2));
+        if (sprite_dist < 15 && std::abs(sprite_dir - a) < shooting_fov / 2) {
+            it = monsters.erase(it); // Remove the monster if it is hit
+        } else {
+            ++it;
+        }
+    }
+}
+
+/**
  * @brief Handles player input events.
  * 
  * This function processes various SDL events to control the player's actions
@@ -53,7 +79,7 @@ void Player::update_position(const Map &map) {
  * - SDL_MOUSEBUTTONDOWN: 
  *   - SDL_BUTTON_LEFT or SDL_BUTTON_RIGHT: Initiates shooting action.
  */
-void Player::handle_event(const SDL_Event &event, Map &map) {
+void Player::handle_event(const SDL_Event &event, Map &map, std::vector<Sprite> &monsters) {
     if (SDL_KEYUP == event.type) {
         if ('a' == event.key.keysym.sym || 'd' == event.key.keysym.sym) turn = 0;
         if ('w' == event.key.keysym.sym || 's' == event.key.keysym.sym) walk = 0;
@@ -78,6 +104,7 @@ void Player::handle_event(const SDL_Event &event, Map &map) {
         if (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT) {
             shooting = true;
             shooting_time = std::chrono::high_resolution_clock::now();
+            check_and_remove_hit_monster(monsters); // Check if a monster is hit
         }
     }
 }

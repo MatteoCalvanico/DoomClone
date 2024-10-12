@@ -98,7 +98,7 @@ int main() {
         SDL_Event event;
         if (SDL_PollEvent(&event)) {
             if (SDL_QUIT==event.type || (SDL_KEYDOWN==event.type && SDLK_ESCAPE==event.key.keysym.sym)) break;
-            gs.player.handle_event(event, gs.map);
+            gs.player.handle_event(event, gs.map, gs.monsters);
         }
 
         // Update the game state
