@@ -15,6 +15,13 @@ directly in the project's root to compile.
 
 *!!! You need to do the same step show in the video but with SDL2_ttf !!!*
 
+
+**Or** you can use Docker for *Build and Run*:
+```sh
+docker build -t doomclone .
+docker run -it --rm doomclone
+```
+
 #### Credits
 This game was created thanks to this tutorial: [ssloy/tinycaster](https://github.com/ssloy/tinyraycaster), which allowed me to learn the basics of game programming and 3D engines.
 
