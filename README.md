@@ -18,7 +18,7 @@ directly in the project's root to compile.
 
 *!!! You need to do the same step show in the video but with SDL2_ttf !!!*
 
-
+**[NEED FIX]**
 **Or** you can use Docker for *Build and Run*:
 ```sh
 docker build -t doomclone .
