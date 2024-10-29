@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 # Compile the game
-RUN g++ -Iinclude -Iinclude/sdl -Iinclude/headers -Llib -o DoomClone src/*.cpp -lmingw32 -lSDL2 -lSDL2_image -lSDL2_ttf -mconsole
+RUN g++ -Iinclude -Iinclude/sdl -Iinclude/headers -Llib -o DoomClone src/*.cpp -lSDL2 -lSDL2_image -lSDL2_ttf
 
 # Make port 80 available to the world outside this container
 EXPOSE 80
